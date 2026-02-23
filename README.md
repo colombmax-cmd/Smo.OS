@@ -1,30 +1,37 @@
-# Smo.OS POC
+# Smo.OS — POC V0.1
 **Smooth Personal Life Operating System**
 
-A minimal, open, and sovereign protocol to manage your personal cognitive states without friction.
+Smo.OS is a minimal, open, and sovereign implementation of a Personal Life Operating System (PLOS).
 
-## Quick Vision
-Smo.OS is the invisible layer that makes your cognition flow smoothly:  
-- Zero seams between your tools  
-- Zero structural loss  
-- Zero dependency on a cloud or central actor  
+It provides a lightweight event-sourced core to represent and persist structured personal state as an append-only log.
 
-It’s your second brain, in smooth mode.
+The goal is simple:
+- Portable personal state
+- Deterministic reconstruction
+- No cloud dependency
+- No central authority
 
-## Current Status
-POC V0.1 in progress:  
-- Core primitives (Entity, Relation, Event, Context)  
-- Append-only event-log  
-- Canonical export  
-- Basic local sync  
+---
 
-## Next Steps
-1. Implement the CLI core  
-2. Interop demo (two local instances)  
-3. 2–3 min demo video  
+## What It Does (POC Scope)
 
-## Contact / Discussions
-Open to ideas, feedback, code!  
-→ Issues or PRs welcome.
+Current V0.1 implements:
 
-Smo.OS: cognition without friction.
+- Event-based core (EntityCreated, StateUpdated, etc.)
+- Append-only JSONL event log
+- Deterministic state reconstruction
+- Canonical export
+- Basic local sync (log merge by event ID)
+
+This is a proof of concept focused on validating the event-log architecture.
+
+---
+
+## Quick Start
+
+```bash
+npm install
+npm run dev create "Coach AI"
+npm run dev update <entityId> status=in_progress
+npm run dev list
+npm run dev export
