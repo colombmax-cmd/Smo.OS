@@ -36,16 +36,7 @@ if (command === "create") {
   }
 
   const entityId = uuidv4();
-  const event: Event = {
-    id: uuidv4(),
-    type: "EntityCreated",
-    entityId,
-    payload: { name, status: "active", createdAt: Date.now() },
-    timestamp: Date.now(),
-  };
-
   const { origin, seq } = allocateSeq();
-
   const event: Event = {
     id: uuidv4(),
     type: "EntityCreated",
@@ -69,16 +60,7 @@ if (command === "update") {
     process.exit(1);
   }
   const [key, value] = kv.split("=");
-  const event: Event = {
-    id: uuidv4(),
-    type: "StateUpdated",
-    entityId,
-    payload: { [key]: guessType(value) },
-    timestamp: Date.now(),0
-  };
-
   const { origin, seq } = allocateSeq();
-
   const event: Event = {
     id: uuidv4(),
     type: "StateUpdated",
