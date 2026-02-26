@@ -5,6 +5,8 @@ import * as fs from "fs";
 import { appendEvent, readEvents, writeEventsAll } from "../core/log";
 import { rebuildState } from "../core/state";
 import { Event } from "../core/types";
+import { allocateSeq, setOrigin, loadMeta } from "../core/meta";
+import { compareEvents } from "../core/compare";
 
 const [, , command, ...args] = process.argv;
 
@@ -42,6 +44,18 @@ if (command === "create") {
     timestamp: Date.now(),
   };
 
+  const { origin, seq } = allocateSeq();
+
+  const event: Event = {
+    id: uuidv4(),
+    type: "EntityCreated",
+    entityId,
+    payload: { name, status: "active", createdAt: Date.now() },
+    timestamp: Date.now(),
+    origin,
+    seq,
+  };
+
   appendEvent(event);
   console.log("Created entity:", entityId);
   process.exit(0);
@@ -60,8 +74,21 @@ if (command === "update") {
     type: "StateUpdated",
     entityId,
     payload: { [key]: guessType(value) },
-    timestamp: Date.now(),
+    timestamp: Date.now(),0
   };
+
+  const { origin, seq } = allocateSeq();
+
+  const event: Event = {
+    id: uuidv4(),
+    type: "StateUpdated",
+    entityId,
+    payload: { [key]: guessType(value) },
+    timestamp: Date.now(),
+    origin,
+    seq,
+  };
+  
   appendEvent(event);
   console.log("Updated", entityId);
   process.exit(0);
@@ -102,9 +129,21 @@ if (command === "sync") {
   for (const e of localEvents) allById[e.id] = e;
   for (const e of externalEvents) allById[e.id] = e;
 
-  const merged = Object.values(allById).sort((a, b) => a.timestamp - b.timestamp);
+  const merged = Object.values(allById).sort(compareEvents);
   writeEventsAll(merged);
   console.log("Synced. Local log now contains", merged.length, "events.");
+  process.exit(0);
+}
+
+if (command === "origin") {
+  const name = (args[0] || "").trim();
+  if (!name) {
+    console.log("Current origin:", loadMeta().origin);
+    console.log("Usage: origin <name>");
+    process.exit(0);
+  }
+  setOrigin(name);
+  console.log("Origin set to:", name);
   process.exit(0);
 }
 
