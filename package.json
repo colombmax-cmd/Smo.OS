@@ -10,7 +10,11 @@
     "zod": "^4.3.6"
   },
   "scripts": {
-    "dev": "ts-node src/cli/index.ts"
+    "dev": "ts-node src/cli/index.ts",
+    "crypto:test": "ts-node src/crypto/_quick_test.ts",
+    "crypto:root": "ts-node src/crypto/segment_root.ts",
+    "crypto:seal": "ts-node src/crypto/segment_seal_cli.ts",
+    "crypto:verify": "ts-node src/crypto/segment_verify.ts"
   },
   "name": "smo.os",
   "version": "1.0.0",

@@ -7,6 +7,7 @@ import { rebuildState } from "../core/state";
 import { Event } from "../core/types";
 import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "../core/meta";
 import { compareEvents } from "../core/compare";
+import { maybeSeal } from "../crypto/maybe_seal";
 
 const [, , command, ...args] = process.argv;
 
@@ -49,7 +50,9 @@ if (command === "create") {
   };
 
   appendEvent(event);
-  console.log("Created entity:", entityId);
+  maybeSeal();
+  const sealed = maybeSeal();
+  console.log("Created entity:", entityId, sealed ? "(sealed)" : "");
   process.exit(0);
 }
 
@@ -74,7 +77,9 @@ if (command === "update") {
   };
   
   appendEvent(event);
-  console.log("Updated", entityId);
+  maybeSeal();
+  const sealed = maybeSeal();
+  console.log("Updated", entityId, sealed ? "(sealed)" : "");
   process.exit(0);
 }
 
@@ -122,7 +127,9 @@ if (command === "sync") {
   }
 mergeSeen(maxByOrigin);
   writeEventsAll(merged);
-  console.log("Synced. Local log now contains", merged.length, "events.");
+  maybeSeal();
+  const sealed = maybeSeal();
+  console.log("Synced. Local log now contains", merged.length, "events.", sealed ? "(sealed)" : "");
   process.exit(0);
 }
 
@@ -182,7 +189,8 @@ if (command === "resolve") {
   };
 
   appendEvent(event);
-  console.log("Conflict resolved:", { entityId, field, chosenEventId });
+  const sealed = maybeSeal();
+  console.log("Conflict resolved:", { entityId, field, chosenEventId }, sealed ? "(sealed)" : "");
   process.exit(0);
 }
 

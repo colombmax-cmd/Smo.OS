@@ -13,6 +13,20 @@ Smo.OS separates state persistence, synchronization and conflict handling from a
 
 It acts as an infrastructure layer — not a productivity app.
 
+## Core Principles
+
+- Append-only event model
+- Deterministic ordering
+- Offline-first synchronization
+- Causal conflict detection
+- Append-only conflict resolution
+- No interpretation layer (structure ≠ intelligence)
+
+Specification:
+→ `docs/protocol/plos-core.md`
+
+---
+
 ## Architecture
 
 Smo.OS follows a layered architecture where applications and AI agents sit above a minimal sovereign core.
@@ -69,16 +83,54 @@ sequenceDiagram
 - Causal detection (seen) identifies real offline conflicts
 - Append-only resolution preserves history and sovereignty
 
+## Security Layer (v0.2.1)
+
+Smo.OS includes a cryptographic integrity layer for local storage.
+
+Event logs are rotated into immutable, signed segments.
+
+Each segment:
+
+- Is deterministically ordered
+- Uses canonical JSON (`json-stable-v1`)
+- Builds a Merkle tree (`SHA-256`)
+- Produces a root hash
+- Is signed using Ed25519
+- Is chained to previous segments
+
+Security specification:
+→ `docs/security-v0.2.1.md`
+
+---
 
 ## Current Status
 
+Core (v0.1.1)
 ✅ Event-sourced core  
 ✅ Offline-first synchronization  
 ✅ Deterministic convergence  
 ✅ Causal conflict detection  
 ✅ Append-only conflict resolution  
 
+Security (v0.2.1):
+✅ Segment rotation 
+✅ Merkle integrity per segment 
+✅ Signed manifests
+✅ Segment chaining  
+✅ Strict verification  
+
 POC stage — protocol stabilization in progress.
+
+---
+
+## Roadmap
+
+v0.2.2:
+- External anchoring (anti-rewrite protection)
+
+v0.3:
+- Multi-node key registry
+- Interoperability hardening
 
 ---
 
@@ -116,12 +168,24 @@ npm run dev resolve <entityId> <field> <chosenEventId>
 ```
 Resolution never rewrites history.
 
-## Specification
+## Crypto
 
-Protocol definition:
-spec/plos-core.md
+Seal current buffer:
+```bash
+npm run crypto:seal
+```
+Verify segments:
+```bash
+npm run crypto:verify
+```
+This checks:
 
-The specification is the source of truth.
+- Manifest version
+- Supported algorithms
+- Merkle integrity
+- Signature validity
+- Segment chain consistency
+
 
 ## Non-Goals
 
