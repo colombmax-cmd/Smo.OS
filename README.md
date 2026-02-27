@@ -1,127 +1,147 @@
 # Smo.OS — Smooth Personal Life Operating System
 
-Smo.OS is an experimental implementation of a **Personal Life Operating System (PLOS)**.
+Smo.OS is an experimental implementation of a Personal Life Operating System (PLOS).
 
 It provides a minimal, open and sovereign protocol to persist, synchronize and resolve personal cognitive state using an append-only event log.
-
----
 
 ## Core Idea
 
 Your tools change.
-Your data should not.
+Your cognition should not.
 
-Smo.OS separates:
-
-- **state persistence**
-- **synchronization**
-- **conflict handling**
-
-from applications, AI agents, or interfaces.
+Smo.OS separates state persistence, synchronization and conflict handling from applications, AI agents or interfaces.
 
 It acts as an infrastructure layer — not a productivity app.
 
----
+## Architecture
+
+Smo.OS follows a layered architecture where applications and AI agents sit above a minimal sovereign core.
+
+```mermaid
+flowchart TB
+
+  I[Interfaces / Apps / Agents<br/>CLI · Mobile · Web · LLM · Coach]
+  O[Ontologies<br/>Finance · Health · Admin · Habits]
+  C[Smo.OS Core<br/>Event Model<br/>Append-only Log<br/>Deterministic Ordering<br/>Causality seen<br/>Conflict Detection<br/>Offline Sync]
+  S[Local Storage<br/>data/events.jsonl<br/>data/meta.json]
+
+  I --> O
+  O --> C
+  C --> S
+```
+
+## Offline Synchronization & Conflict Resolution
+
+Smo.OS nodes can operate fully offline.
+
+Synchronization merges event logs deterministically.
+Conflicts are detected using causal concurrency instead of timestamps.
+```mermaid
+sequenceDiagram
+
+  participant A as Node A
+  participant B as Node B
+
+  Note over A: Offline work
+  A->>A: StateUpdated(status=done)
+  Note right of A: origin=A<br/>seq=10<br/>seen={A:9,B:3}
+
+  Note over B: Offline work
+  B->>B: StateUpdated(status=canceled)
+  Note right of B: origin=B<br/>seq=7<br/>seen={A:9,B:6}
+
+  A->>B: Sync events
+  B->>A: Sync events
+
+  Note over A,B: Merge = union by id + deterministic ordering
+
+  Note over A,B: Concurrent writes detected via seen vectors
+
+  A->>A: Conflict detected
+  A->>A: ConflictResolved(field=status, chosenEventId=eA)
+
+  Note over A,B: Resolution is append-only<br/>History is never rewritten
+```
+
+## Why Smo.OS Converges
+
+- Deterministic ordering guarantees identical replay everywhere
+- Causal detection (seen) identifies real offline conflicts
+- Append-only resolution preserves history and sovereignty
+
 
 ## Current Status
 
 ✅ Event-sourced core  
 ✅ Offline-first synchronization  
 ✅ Deterministic convergence  
-✅ Causal conflict detection (`seen` vector)  
+✅ Causal conflict detection  
 ✅ Append-only conflict resolution  
 
 POC stage — protocol stabilization in progress.
 
 ---
 
-## Architecture
+## Quick Start
 
-                 ┌─────────────────────────────────────┐
-                 │     Interfaces / Apps / Agents      │
-                 │  (CLI, mobile, web, LLM, coach...)  │
-                 └─────────────────────────────────────┘
-                               ▲
-                               │ read/write (events)
-                               │
-                 ┌─────────────────────────────────────┐
-                 │            Ontologies               │
-                 │ (finance, health, admin, habits...) │
-                 └─────────────────────────────────────┘
-                               ▲
-                               │ typed events / schemas
-                               │
-┌───────────────────────────────────────────────────────────────────┐
-│                           Smo.OS Core                             │
-│  - Event model (EntityCreated, StateUpdated, ConflictResolved...) │
-│  - Append-only log (events.jsonl)                                 │
-│  - Deterministic ordering (timestamp, origin, seq, id)            │
-│  - Causality (seen vector)                                        │
-│  - Conflict detection (concurrent writes)                         │
-│  - Sync merge (union by id + sort)                                │
-└───────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │ local files (sovereign)
-                               │
-                 ┌─────────────────────────────────────┐
-                 │          Local Storage              │
-                 │  data/events.jsonl + data/meta.json │
-                 └─────────────────────────────────────┘
-
----
-
-## Conflict Resolution
-
-        Node A (origin=nodeA)                    Node B (origin=nodeB)
-     ┌───────────────────────┐                ┌───────────────────────┐
-     │ data/events.jsonl     │                │ data/events.jsonl     │
-     │ data/meta.json        │                │ data/meta.json        │
-     │  - nextSeq            │                │  - nextSeq            │
-     │  - seen{A:x,B:y}      │                │  - seen{A:x,B:y}      │
-     └───────────┬───────────┘                └───────────┬───────────┘
-                 │                                        │
-    git pulloffline write│                                        │offline write
-                 ▼                                        ▼
-   eA: StateUpdated(status=done)             eB: StateUpdated(status=canceled)
-   origin=nodeA, seq=10, seen={A:9,B:3}      origin=nodeB, seq=7,  seen={A:9,B:6}
-
-                 │                                        │
-                 └─────────────── sync (merge) ───────────┘
-                                 (union by id + sort)
-                                         ▼
-                             merged ordered event stream
-                                         ▼
-            conflict? same entity+field, different values, concurrent?
-              - eA sees eB ?  seenA[B] >= seqB  → 3 >= 7  false
-              - eB sees eA ?  seenB[A] >= seqA  → 9 >= 10 false
-              => concurrent => CONFLICT DETECTED
-
-                                         ▼
-                         user chooses winner append-only:
-                 ConflictResolved(field=status, chosenEventId=eA.id)
-                                         ▼
-                           projection enforces chosen value
-                         (without rewriting history)
-
----
-
-## Quick Start  
-
-Install dependencies  
-Create an entity  
-Update state  
-List reconstructed state  
-Export fill event log  
-Merge from another instance  
-List detected conflits  
-Resolve a conflict  
-
+Install dependencies:
 ```bash
 npm install
+```
+Create an entity:
+```bash
 npm run dev create "Coach AI"
+```
+Update state:
+```bash
 npm run dev update <entityId> status=in_progress
+```
+List reconstructed state:
+```bash
 npm run dev list
+```
+Export full event log:
+```bash
 npm run dev export
-npm run dev sync <path-to-events.jsonl>
+```
+## Conflict Resolution
+
+List conflicts:
+```bash
 npm run dev conflicts
+```
+Resolve a conflict:
+```bash
 npm run dev resolve <entityId> <field> <chosenEventId>
+```
+Resolution never rewrites history.
+
+## Specification
+
+Protocol definition:
+spec/plos-core.md
+
+The specification is the source of truth.
+
+## Non-Goals
+
+Smo.OS is not:
+- an AI assistant
+- a productivity application
+- a cloud platform
+- a centralized service
+
+It is a protocol layer.
+
+## Vision
+
+Smo.OS explores a future where personal cognitive state is:
+
+- portable
+- interoperable
+- sovereign
+- AI-agnostic
+
+## Contributing
+
+Issues, ideas and experiments welcome.
