@@ -99,7 +99,7 @@ Each segment:
 - Is chained to previous segments
 
 Security specification:
-→ `docs/security-v0.2.1.md`
+→ `docs/protocol/security-v0.2.1.md`
 
 ---
 
