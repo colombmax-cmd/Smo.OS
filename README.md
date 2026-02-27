@@ -37,15 +37,71 @@ POC stage — protocol stabilization in progress.
 
 ## Architecture
 
-Interfaces / Agents (CLI, future web/mobile/IA)  
-          ↓  
-Ontologies & Schemas (types d'events: note, task, mood...)  
-          ↓  
-Smo.OS Core  
-  ├─ Event Log (append-only JSONL)  
-  ├─ Seen Vector (causalité)  
-  ├─ Sync Engine (merge par vector comparison)  
-  └─ Conflict Resolver (manuel pour l'instant)  
+                 ┌─────────────────────────────────────┐
+                 │     Interfaces / Apps / Agents      │
+                 │  (CLI, mobile, web, LLM, coach...)  │
+                 └─────────────────────────────────────┘
+                               ▲
+                               │ read/write (events)
+                               │
+                 ┌─────────────────────────────────────┐
+                 │            Ontologies               │
+                 │ (finance, health, admin, habits...) │
+                 └─────────────────────────────────────┘
+                               ▲
+                               │ typed events / schemas
+                               │
+┌───────────────────────────────────────────────────────────────────┐
+│                           Smo.OS Core                             │
+│  - Event model (EntityCreated, StateUpdated, ConflictResolved...) │
+│  - Append-only log (events.jsonl)                                 │
+│  - Deterministic ordering (timestamp, origin, seq, id)            │
+│  - Causality (seen vector)                                        │
+│  - Conflict detection (concurrent writes)                         │
+│  - Sync merge (union by id + sort)                                │
+└───────────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ local files (sovereign)
+                               │
+                 ┌─────────────────────────────────────┐
+                 │          Local Storage              │
+                 │  data/events.jsonl + data/meta.json │
+                 └─────────────────────────────────────┘
+
+---
+
+## Conflict Resolution
+
+        Node A (origin=nodeA)                    Node B (origin=nodeB)
+     ┌───────────────────────┐                ┌───────────────────────┐
+     │ data/events.jsonl     │                │ data/events.jsonl     │
+     │ data/meta.json        │                │ data/meta.json        │
+     │  - nextSeq            │                │  - nextSeq            │
+     │  - seen{A:x,B:y}      │                │  - seen{A:x,B:y}      │
+     └───────────┬───────────┘                └───────────┬───────────┘
+                 │                                        │
+    offline write│                                        │offline write
+                 ▼                                        ▼
+   eA: StateUpdated(status=done)             eB: StateUpdated(status=canceled)
+   origin=nodeA, seq=10, seen={A:9,B:3}      origin=nodeB, seq=7,  seen={A:9,B:6}
+
+                 │                                        │
+                 └─────────────── sync (merge) ───────────┘
+                                 (union by id + sort)
+                                         ▼
+                             merged ordered event stream
+                                         ▼
+            conflict? same entity+field, different values, concurrent?
+              - eA sees eB ?  seenA[B] >= seqB  → 3 >= 7  false
+              - eB sees eA ?  seenB[A] >= seqA  → 9 >= 10 false
+              => concurrent => CONFLICT DETECTED
+
+                                         ▼
+                         user chooses winner append-only:
+                 ConflictResolved(field=status, chosenEventId=eA.id)
+                                         ▼
+                           projection enforces chosen value
+                         (without rewriting history)
 
 ---
 
