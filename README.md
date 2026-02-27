@@ -80,7 +80,7 @@ POC stage — protocol stabilization in progress.
      │  - seen{A:x,B:y}      │                │  - seen{A:x,B:y}      │
      └───────────┬───────────┘                └───────────┬───────────┘
                  │                                        │
-    offline write│                                        │offline write
+    git pulloffline write│                                        │offline write
                  ▼                                        ▼
    eA: StateUpdated(status=done)             eB: StateUpdated(status=canceled)
    origin=nodeA, seq=10, seen={A:9,B:3}      origin=nodeB, seq=7,  seen={A:9,B:6}
