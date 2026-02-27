@@ -47,14 +47,14 @@ Smo.OS Core
 
 ## Quick Start
 
-Install dependencies
-Create an entity
-Update state
-List reconstructed state
-Export fill event log
-Merge from another instance
-List detected conflits
-Resolve a conflict
+Install dependencies.
+Create an entity.
+Update state.
+List reconstructed state.
+Export fill event log.
+Merge from another instance.
+List detected conflits.
+Resolve a conflict.
 
 ```bash
 npm install
