@@ -37,31 +37,28 @@ POC stage — protocol stabilization in progress.
 
 ## Architecture
 
-Interfaces / Agents
-
-Ontologies
-
-Smo.OS Core (event log + sync + causality)
+Interfaces / Agents (CLI, future web/mobile/IA)  
+          ↓  
+Ontologies & Schemas (types d'events: note, task, mood...)  
+          ↓  
+Smo.OS Core  
+  ├─ Event Log (append-only JSONL)  
+  ├─ Seen Vector (causalité)  
+  ├─ Sync Engine (merge par vector comparison)  
+  └─ Conflict Resolver (manuel pour l'instant)  
 
 ---
 
-## Quick Start
+## Quick Start  
 
-Install dependencies
-
-Create an entity
-
-Update state
-
-List reconstructed state
-
-Export fill event log
-
-Merge from another instance
-
-List detected conflits
-
-Resolve a conflict
+Install dependencies  
+Create an entity  
+Update state  
+List reconstructed state  
+Export fill event log  
+Merge from another instance  
+List detected conflits  
+Resolve a conflict  
 
 ```bash
 npm install
