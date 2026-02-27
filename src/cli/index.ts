@@ -151,6 +151,41 @@ if (command === "reset") {
   process.exit(0);
 }
 
+if (command === "conflicts") {
+  const events = readEvents();
+  const state = rebuildState(events);
+  console.log(JSON.stringify(state.conflicts, null, 2));
+  process.exit(0);
+}
+
+if (command === "resolve") {
+  const entityId = args[0];
+  const field = args[1];
+  const chosenEventId = args[2];
+
+  if (!entityId || !field || !chosenEventId) {
+    console.error("Usage: resolve <entityId> <field> <chosenEventId>");
+    process.exit(1);
+  }
+
+  const { origin, seq, seen } = allocateSeqWithSeen();
+
+  const event: Event = {
+    id: uuidv4(),
+    type: "ConflictResolved",
+    entityId,
+    payload: { field, chosenEventId },
+    timestamp: Date.now(),
+    origin,
+    seq,
+    seen,
+  };
+
+  appendEvent(event);
+  console.log("Conflict resolved:", { entityId, field, chosenEventId });
+  process.exit(0);
+}
+
 usage();
 
 // helper: try to convert "true"/"123" to types

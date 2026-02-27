@@ -1,136 +1,224 @@
-/**
- * Rebuild simple projection: entities map
- * Entities are simple objects merged from EntityCreated and StateUpdated events.
- */
 import { Event } from "./types";
 import { compareEvents } from "./compare";
 
-type Conflict = {
-  entityId: string;
-  field: string;
-  candidates: Array<{
-    value: any;
-    eventId: string;
-    origin: string;
-    seq: number;
-    timestamp: number;
-  }>;
-  winner: {
-    value: any;
-    eventId: string;
-    origin: string;
-    seq: number;
-    timestamp: number;
+/**
+ * Helpers: tolerate legacy events (read tolerant).
+ */
+function normalizeEvent(e: any): Event {
+  return {
+    ...e,
+    origin: e.origin ?? "legacy",
+    seq: e.seq ?? 0,
+    seen: e.seen ?? {},
   };
-};
-
-function getSeen(e: any): Record<string, number> {
-  return e.seen ?? {};
 }
 
+/**
+ * Causality: "a sees b" if a.seen[b.origin] >= b.seq
+ */
 function sees(a: any, b: any): boolean {
-  // a sees b if a.seen[b.origin] >= b.seq
-  const aSeen = getSeen(a);
+  const aSeen: Record<string, number> = a.seen ?? {};
   const bOrigin = b.origin ?? "legacy";
   const bSeq = b.seq ?? 0;
   return (aSeen[bOrigin] ?? 0) >= bSeq;
 }
 
+/**
+ * Concurrency: concurrent if neither sees the other
+ */
 function concurrent(a: any, b: any): boolean {
-  // concurrent if neither sees the other
   return !sees(a, b) && !sees(b, a);
 }
 
+type ConflictCandidate = {
+  value: any;
+  eventId: string;
+  origin: string;
+  seq: number;
+  timestamp: number;
+};
+
+type Conflict = {
+  entityId: string;
+  field: string;
+  candidates: [ConflictCandidate, ConflictCandidate];
+  winner: ConflictCandidate;
+  resolved: boolean;
+  resolvedByEventId?: string;     // ConflictResolved event id
+  chosenEventId?: string;         // chosenEventId from payload
+};
+
+/**
+ * Rebuild projection from events.
+ * - entities: reconstructed state
+ * - conflicts: detected concurrent writes on same (entityId, field)
+ *
+ * Supports ConflictResolved:
+ * - append-only resolution that forces the winner for a given field
+ */
 export function rebuildState(events: Event[]) {
-  const sorted = [...events].sort(compareEvents);
-  const normalized = sorted.map(e => ({
-    ...e,
-    origin: e.origin ?? "legacy",
-    seq: e.seq ?? 0,
-    seen: e.seen ?? {}
-  }));
+  // Sort deterministically and normalize (read tolerant)
+  const sorted = [...events].sort(compareEvents).map(normalizeEvent);
+
   const entities: Record<string, any> = {};
   const conflicts: Conflict[] = [];
+
+  // index events by id (needed for ConflictResolved lookup)
+  const eventById: Record<string, Event> = {};
 
   // Track last write per (entityId, field)
   const lastWrite: Record<string, { value: any; event: Event }> = {};
 
-  for (const event of normalized) {
-    const id = event.entityId;
-    if (!entities[id]) entities[id] = { id };
+  // Track resolutions per (entityId, field) -> chosenEventId
+  const resolutions: Record<string, { chosenEventId: string; resolvedByEventId: string }> = {};
 
-    if (event.type === "EntityCreated") {
-      entities[id] = { ...entities[id], ...event.payload };
-      // Track each field as lastWrite
-      for (const [k, v] of Object.entries(event.payload)) {
-        lastWrite[`${id}:${k}`] = { value: v, event };
+  // Utility: build candidate from (event, value)
+  const candidateOf = (ev: Event, value: any): ConflictCandidate => ({
+    value,
+    eventId: ev.id,
+    origin: ev.origin,
+    seq: ev.seq,
+    timestamp: ev.timestamp,
+  });
+
+  // Utility: apply a value write to state + lastWrite
+  const applyWrite = (entityId: string, field: string, value: any, ev: Event) => {
+    if (!entities[entityId]) entities[entityId] = { id: entityId };
+    entities[entityId][field] = value;
+    lastWrite[`${entityId}:${field}`] = { value, event: ev };
+  };
+
+  // First pass: process events in order
+  for (const ev of sorted) {
+    eventById[ev.id] = ev;
+
+    const entityId = ev.entityId;
+    if (!entities[entityId]) entities[entityId] = { id: entityId };
+
+    if (ev.type === "ConflictResolved") {
+      const field = ev.payload?.field;
+      const chosenEventId = ev.payload?.chosenEventId;
+      if (typeof field === "string" && typeof chosenEventId === "string") {
+        resolutions[`${entityId}:${field}`] = {
+          chosenEventId,
+          resolvedByEventId: ev.id,
+        };
       }
       continue;
     }
 
-    if (event.type === "StateUpdated") {
-      for (const [k, v] of Object.entries(event.payload)) {
-        const key = `${id}:${k}`;
+    if (ev.type === "EntityCreated") {
+      // Apply all payload fields as initial state
+      for (const [k, v] of Object.entries(ev.payload ?? {})) {
+        applyWrite(entityId, k, v, ev);
+      }
+      continue;
+    }
+
+    if (ev.type === "StateUpdated") {
+      for (const [field, value] of Object.entries(ev.payload ?? {})) {
+        const key = `${entityId}:${field}`;
         const prev = lastWrite[key];
 
         if (prev) {
-          const prevEvent = prev.event;
+          const prevEv = prev.event;
 
-          const differentOrigin = prevEvent.origin !== event.origin;
-          const differentValue = prev.value !== v;
+          const differentOrigin = prevEv.origin !== ev.origin;
+          const differentValue = prev.value !== value;
 
-          if (differentOrigin && differentValue && concurrent(prevEvent, event)) {
-            // Conflict becomes visible because a different origin overwrote a different value
-            const winner = compareEvents(prevEvent, event) <= 0 ? event : prevEvent;
-            const loser = winner.id === event.id ? prevEvent : event;
+          // Real conflict only if concurrent (offline / no causality)
+          if (differentOrigin && differentValue && concurrent(prevEv, ev)) {
+            // Default winner in this sorted iteration is the current event (LWW by order)
+            let winnerEv: Event = ev;
+            let winnerValue: any = value;
+
+            const resolution = resolutions[key];
+            let resolved = false;
+            let resolvedByEventId: string | undefined = undefined;
+            let chosenEventId: string | undefined = undefined;
+
+            // If resolved, force winner according to chosenEventId (append-only)
+            if (resolution) {
+              resolved = true;
+              resolvedByEventId = resolution.resolvedByEventId;
+              chosenEventId = resolution.chosenEventId;
+
+              const chosen = eventById[resolution.chosenEventId];
+              if (
+                chosen &&
+                chosen.type === "StateUpdated" &&
+                chosen.payload &&
+                Object.prototype.hasOwnProperty.call(chosen.payload, field)
+              ) {
+                winnerEv = chosen;
+                winnerValue = (chosen.payload as any)[field];
+              }
+              // If chosen event isn't found or doesn't contain the field, we keep default.
+            } else {
+              // Not resolved: keep deterministic winner as the later one in order.
+              // Since we iterate sorted, "ev" is later than prevEv in the applied order.
+              winnerEv = ev;
+              winnerValue = value;
+            }
+
+            // Push conflict record (always includes both candidates)
+            const c1 = candidateOf(prevEv, prev.value);
+            const c2 = candidateOf(ev, value);
+
+            const winner = winnerEv.id === prevEv.id ? c1 : c2;
+            // But if forced by resolution, winner might be chosen event that is neither prevEv nor ev
+            // (rare for V0.1.2). Handle that:
+            const forcedWinner: ConflictCandidate =
+              winnerEv.id === prevEv.id
+                ? c1
+                : winnerEv.id === ev.id
+                  ? c2
+                  : candidateOf(winnerEv, winnerValue);
 
             conflicts.push({
-              entityId: id,
-              field: k,
-              candidates: [
-                {
-                  value: prev.value,
-                  eventId: prevEvent.id,
-                  origin: prevEvent.origin,
-                  seq: prevEvent.seq,
-                  timestamp: prevEvent.timestamp,
-                },
-                {
-                  value: v,
-                  eventId: event.id,
-                  origin: event.origin,
-                  seq: event.seq,
-                  timestamp: event.timestamp,
-                },
-              ],
-              winner: {
-                value: winner === event ? v : prev.value,
-                eventId: winner.id,
-                origin: winner.origin,
-                seq: winner.seq,
-                timestamp: winner.timestamp,
-              },
+              entityId,
+              field,
+              candidates: [c1, c2],
+              winner: forcedWinner,
+              resolved,
+              resolvedByEventId,
+              chosenEventId,
             });
           }
         }
 
-        // Apply value (LWW according to ordering)
-        // Since we're iterating in sorted order, the latest wins naturally
-        entities[id][k] = v;
-        lastWrite[key] = { value: v, event };
+        // Apply current write (normal projection)
+        applyWrite(entityId, field, value, ev);
+
+        // If a resolution exists for this field, enforce it immediately on the state
+        // so "list" reflects user choice even if later events arrived.
+        const res = resolutions[`${entityId}:${field}`];
+        if (res) {
+          const chosen = eventById[res.chosenEventId];
+          if (
+            chosen &&
+            chosen.type === "StateUpdated" &&
+            chosen.payload &&
+            Object.prototype.hasOwnProperty.call(chosen.payload, field)
+          ) {
+            const chosenValue = (chosen.payload as any)[field];
+            applyWrite(entityId, field, chosenValue, chosen);
+          }
+        }
       }
       continue;
     }
 
-    if (event.type === "RelationAdded") {
-      entities[id].relations = entities[id].relations || [];
-      entities[id].relations.push(event.payload);
+    // Keep existing optional event types as simple accumulators
+    if (ev.type === "RelationAdded") {
+      entities[entityId].relations = entities[entityId].relations || [];
+      entities[entityId].relations.push(ev.payload);
       continue;
     }
 
-    if (event.type === "MetricRecorded") {
-      entities[id].metrics = entities[id].metrics || [];
-      entities[id].metrics.push(event.payload);
+    if (ev.type === "MetricRecorded") {
+      entities[entityId].metrics = entities[entityId].metrics || [];
+      entities[entityId].metrics.push(ev.payload);
       continue;
     }
   }

@@ -5,7 +5,8 @@ export type EventType =
   | "StateUpdated"
   | "RelationAdded"
   | "RelationRemoved"
-  | "MetricRecorded";
+  | "MetricRecorded"
+  | "ConflictResolved";
 
 export interface Event {
   id: string;
