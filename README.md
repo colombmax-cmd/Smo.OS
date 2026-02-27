@@ -43,6 +43,8 @@ Ontologies
 Smo.OS Core
 (event log + sync + causality)
 
+---
+
 ## Quick Start
 
 Install dependencies
@@ -53,6 +55,7 @@ Export fill event log
 Merge from another instance
 List detected conflits
 Resolve a conflict
+
 ```bash
 npm install
 npm run dev create "Coach AI"
