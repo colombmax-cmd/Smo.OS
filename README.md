@@ -36,12 +36,12 @@ POC stage — protocol stabilization in progress.
 ---
 
 ## Architecture
+
 Interfaces / Agents
-↑
+
 Ontologies
-↑
-Smo.OS Core
-(event log + sync + causality)
+
+Smo.OS Core (event log + sync + causality)
 
 ---
 
