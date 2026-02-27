@@ -5,7 +5,7 @@ import * as fs from "fs";
 import { appendEvent, readEvents, writeEventsAll } from "../core/log";
 import { rebuildState } from "../core/state";
 import { Event } from "../core/types";
-import { allocateSeq, setOrigin, loadMeta } from "../core/meta";
+import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "../core/meta";
 import { compareEvents } from "../core/compare";
 
 const [, , command, ...args] = process.argv;
@@ -36,7 +36,7 @@ if (command === "create") {
   }
 
   const entityId = uuidv4();
-  const { origin, seq } = allocateSeq();
+  const { origin, seq, seen } = allocateSeqWithSeen();
   const event: Event = {
     id: uuidv4(),
     type: "EntityCreated",
@@ -45,6 +45,7 @@ if (command === "create") {
     timestamp: Date.now(),
     origin,
     seq,
+    seen,
   };
 
   appendEvent(event);
@@ -60,7 +61,7 @@ if (command === "update") {
     process.exit(1);
   }
   const [key, value] = kv.split("=");
-  const { origin, seq } = allocateSeq();
+  const { origin, seq, seen } = allocateSeqWithSeen();
   const event: Event = {
     id: uuidv4(),
     type: "StateUpdated",
@@ -69,6 +70,7 @@ if (command === "update") {
     timestamp: Date.now(),
     origin,
     seq,
+    seen,
   };
   
   appendEvent(event);
@@ -112,6 +114,13 @@ if (command === "sync") {
   for (const e of externalEvents) allById[e.id] = e;
 
   const merged = Object.values(allById).sort(compareEvents);
+  const maxByOrigin: Record<string, number> = {};
+  for (const e of merged) {
+    const org = (e as any).origin ?? "legacy";
+    const seq = (e as any).seq ?? 0;
+    maxByOrigin[org] = Math.max(maxByOrigin[org] ?? 0, seq);
+  }
+mergeSeen(maxByOrigin);
   writeEventsAll(merged);
   console.log("Synced. Local log now contains", merged.length, "events.");
   process.exit(0);
@@ -126,6 +135,19 @@ if (command === "origin") {
   }
   setOrigin(name);
   console.log("Origin set to:", name);
+  process.exit(0);
+}
+
+if (command === "reset") {
+  // wipes local log + resets meta
+  const fs = require("fs");
+  const path = require("path");
+  const logPath = path.resolve(process.cwd(), "data", "events.jsonl");
+
+  try { fs.unlinkSync(logPath); } catch {}
+  resetMeta(loadMeta().origin || "default");
+
+  console.log("Reset done: data/events.jsonl removed, meta reset.");
   process.exit(0);
 }
 

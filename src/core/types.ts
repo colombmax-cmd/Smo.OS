@@ -13,7 +13,7 @@ export interface Event {
   entityId: EntityId;
   payload: Record<string, any>;
   timestamp: number;
-
   origin: string; // e.g. "nodeA"
   seq: number;    // monotonically increasing per origin
+  seen: Record<string, number>;
 }

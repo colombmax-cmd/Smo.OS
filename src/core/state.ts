@@ -24,16 +24,38 @@ type Conflict = {
   };
 };
 
+function getSeen(e: any): Record<string, number> {
+  return e.seen ?? {};
+}
+
+function sees(a: any, b: any): boolean {
+  // a sees b if a.seen[b.origin] >= b.seq
+  const aSeen = getSeen(a);
+  const bOrigin = b.origin ?? "legacy";
+  const bSeq = b.seq ?? 0;
+  return (aSeen[bOrigin] ?? 0) >= bSeq;
+}
+
+function concurrent(a: any, b: any): boolean {
+  // concurrent if neither sees the other
+  return !sees(a, b) && !sees(b, a);
+}
+
 export function rebuildState(events: Event[]) {
   const sorted = [...events].sort(compareEvents);
-
+  const normalized = sorted.map(e => ({
+    ...e,
+    origin: e.origin ?? "legacy",
+    seq: e.seq ?? 0,
+    seen: e.seen ?? {}
+  }));
   const entities: Record<string, any> = {};
   const conflicts: Conflict[] = [];
 
   // Track last write per (entityId, field)
   const lastWrite: Record<string, { value: any; event: Event }> = {};
 
-  for (const event of sorted) {
+  for (const event of normalized) {
     const id = event.entityId;
     if (!entities[id]) entities[id] = { id };
 
@@ -57,7 +79,7 @@ export function rebuildState(events: Event[]) {
           const differentOrigin = prevEvent.origin !== event.origin;
           const differentValue = prev.value !== v;
 
-          if (differentOrigin && differentValue) {
+          if (differentOrigin && differentValue && concurrent(prevEvent, event)) {
             // Conflict becomes visible because a different origin overwrote a different value
             const winner = compareEvents(prevEvent, event) <= 0 ? event : prevEvent;
             const loser = winner.id === event.id ? prevEvent : event;
