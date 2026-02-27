@@ -57,22 +57,35 @@ type Conflict = {
  * - append-only resolution that forces the winner for a given field
  */
 export function rebuildState(events: Event[]) {
-  // Sort deterministically and normalize (read tolerant)
   const sorted = [...events].sort(compareEvents).map(normalizeEvent);
 
   const entities: Record<string, any> = {};
   const conflicts: Conflict[] = [];
 
-  // index events by id (needed for ConflictResolved lookup)
   const eventById: Record<string, Event> = {};
 
-  // Track last write per (entityId, field)
-  const lastWrite: Record<string, { value: any; event: Event }> = {};
-
-  // Track resolutions per (entityId, field) -> chosenEventId
+  // key = `${entityId}:${field}` -> resolution info
   const resolutions: Record<string, { chosenEventId: string; resolvedByEventId: string }> = {};
 
-  // Utility: build candidate from (event, value)
+  // ---------- PASS 1: index + collect resolutions ----------
+  for (const ev of sorted) {
+    eventById[ev.id] = ev;
+
+    if (ev.type === "ConflictResolved") {
+      const field = ev.payload?.field;
+      const chosenEventId = ev.payload?.chosenEventId;
+      if (typeof field === "string" && typeof chosenEventId === "string") {
+        resolutions[`${ev.entityId}:${field}`] = {
+          chosenEventId,
+          resolvedByEventId: ev.id,
+        };
+      }
+    }
+  }
+
+  // ---------- PASS 2: rebuild state + detect conflicts ----------
+  const lastWrite: Record<string, { value: any; event: Event }> = {};
+
   const candidateOf = (ev: Event, value: any): ConflictCandidate => ({
     value,
     eventId: ev.id,
@@ -81,34 +94,20 @@ export function rebuildState(events: Event[]) {
     timestamp: ev.timestamp,
   });
 
-  // Utility: apply a value write to state + lastWrite
   const applyWrite = (entityId: string, field: string, value: any, ev: Event) => {
     if (!entities[entityId]) entities[entityId] = { id: entityId };
     entities[entityId][field] = value;
     lastWrite[`${entityId}:${field}`] = { value, event: ev };
   };
 
-  // First pass: process events in order
   for (const ev of sorted) {
-    eventById[ev.id] = ev;
-
     const entityId = ev.entityId;
     if (!entities[entityId]) entities[entityId] = { id: entityId };
 
-    if (ev.type === "ConflictResolved") {
-      const field = ev.payload?.field;
-      const chosenEventId = ev.payload?.chosenEventId;
-      if (typeof field === "string" && typeof chosenEventId === "string") {
-        resolutions[`${entityId}:${field}`] = {
-          chosenEventId,
-          resolvedByEventId: ev.id,
-        };
-      }
-      continue;
-    }
+    // ConflictResolved doesn't directly change state here; it's applied via enforcement below
+    if (ev.type === "ConflictResolved") continue;
 
     if (ev.type === "EntityCreated") {
-      // Apply all payload fields as initial state
       for (const [k, v] of Object.entries(ev.payload ?? {})) {
         applyWrite(entityId, k, v, ev);
       }
@@ -120,66 +119,52 @@ export function rebuildState(events: Event[]) {
         const key = `${entityId}:${field}`;
         const prev = lastWrite[key];
 
+        // detect real concurrent conflict
         if (prev) {
           const prevEv = prev.event;
-
           const differentOrigin = prevEv.origin !== ev.origin;
           const differentValue = prev.value !== value;
 
-          // Real conflict only if concurrent (offline / no causality)
           if (differentOrigin && differentValue && concurrent(prevEv, ev)) {
-            // Default winner in this sorted iteration is the current event (LWW by order)
-            let winnerEv: Event = ev;
-            let winnerValue: any = value;
+            const res = resolutions[key];
 
-            const resolution = resolutions[key];
+            let forcedWinnerCandidate: ConflictCandidate | null = null;
             let resolved = false;
             let resolvedByEventId: string | undefined = undefined;
             let chosenEventId: string | undefined = undefined;
 
-            // If resolved, force winner according to chosenEventId (append-only)
-            if (resolution) {
+            if (res) {
               resolved = true;
-              resolvedByEventId = resolution.resolvedByEventId;
-              chosenEventId = resolution.chosenEventId;
+              resolvedByEventId = res.resolvedByEventId;
+              chosenEventId = res.chosenEventId;
 
-              const chosen = eventById[resolution.chosenEventId];
+              const chosen = eventById[res.chosenEventId];
               if (
                 chosen &&
                 chosen.type === "StateUpdated" &&
                 chosen.payload &&
                 Object.prototype.hasOwnProperty.call(chosen.payload, field)
               ) {
-                winnerEv = chosen;
-                winnerValue = (chosen.payload as any)[field];
+                forcedWinnerCandidate = candidateOf(chosen, (chosen.payload as any)[field]);
               }
-              // If chosen event isn't found or doesn't contain the field, we keep default.
-            } else {
-              // Not resolved: keep deterministic winner as the later one in order.
-              // Since we iterate sorted, "ev" is later than prevEv in the applied order.
-              winnerEv = ev;
-              winnerValue = value;
             }
 
-            // Push conflict record (always includes both candidates)
             const c1 = candidateOf(prevEv, prev.value);
             const c2 = candidateOf(ev, value);
 
-            const winner = winnerEv.id === prevEv.id ? c1 : c2;
-            // But if forced by resolution, winner might be chosen event that is neither prevEv nor ev
-            // (rare for V0.1.2). Handle that:
-            const forcedWinner: ConflictCandidate =
-              winnerEv.id === prevEv.id
-                ? c1
-                : winnerEv.id === ev.id
-                  ? c2
-                  : candidateOf(winnerEv, winnerValue);
+            // Default winner (deterministic): later in applied order, i.e. current ev
+            let winner = c2;
+
+            // If resolved, force winner to chosen event
+            if (forcedWinnerCandidate) {
+              winner = forcedWinnerCandidate;
+            }
 
             conflicts.push({
               entityId,
               field,
               candidates: [c1, c2],
-              winner: forcedWinner,
+              winner,
               resolved,
               resolvedByEventId,
               chosenEventId,
@@ -187,12 +172,11 @@ export function rebuildState(events: Event[]) {
           }
         }
 
-        // Apply current write (normal projection)
+        // Apply current write
         applyWrite(entityId, field, value, ev);
 
-        // If a resolution exists for this field, enforce it immediately on the state
-        // so "list" reflects user choice even if later events arrived.
-        const res = resolutions[`${entityId}:${field}`];
+        // Enforce resolution (if any) on the state immediately
+        const res = resolutions[key];
         if (res) {
           const chosen = eventById[res.chosenEventId];
           if (
@@ -209,7 +193,6 @@ export function rebuildState(events: Event[]) {
       continue;
     }
 
-    // Keep existing optional event types as simple accumulators
     if (ev.type === "RelationAdded") {
       entities[entityId].relations = entities[entityId].relations || [];
       entities[entityId].relations.push(ev.payload);
