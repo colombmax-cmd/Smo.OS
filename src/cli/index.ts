@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from "uuid";
 import * as path from "path";
 import * as fs from "fs";
-import { appendEvent, readEvents, writeEventsAll } from "../core/log";
+import { appendEvent, readAllEvents, readEvents, writeEventsAll } from "../core/log";
 import { rebuildState } from "../core/state";
 import { Event } from "../core/types";
 import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "../core/meta";
@@ -84,14 +84,14 @@ if (command === "update") {
 }
 
 if (command === "list") {
-  const events = readEvents();
+  const events = readAllEvents();
   const state = rebuildState(events);
   console.log(JSON.stringify(state, null, 2));
   process.exit(0);
 }
 
 if (command === "export") {
-  const events = readEvents();
+  const events = readAllEvents();
   console.log(JSON.stringify(events, null, 2));
   process.exit(0);
 }
@@ -113,7 +113,7 @@ if (command === "sync") {
   const content = fs.readFileSync(resolved, { encoding: "utf8" }).split("\n").filter(Boolean);
   const externalEvents: Event[] = content.map((l) => JSON.parse(l));
 
-  const localEvents = readEvents();
+  const localEvents = readAllEvents();
   const allById: Record<string, Event> = {};
   for (const e of localEvents) allById[e.id] = e;
   for (const e of externalEvents) allById[e.id] = e;
@@ -159,7 +159,7 @@ if (command === "reset") {
 }
 
 if (command === "conflicts") {
-  const events = readEvents();
+  const events = readAllEvents();
   const state = rebuildState(events);
   console.log(JSON.stringify(state.conflicts, null, 2));
   process.exit(0);
