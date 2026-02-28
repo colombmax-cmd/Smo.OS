@@ -4,6 +4,7 @@ import { Event } from "./types";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const LOG_PATH = path.join(DATA_DIR, "events.jsonl");
+const SEG_DIR = path.join(DATA_DIR, "segments");
 
 // Ensure data directory and log file exist
 function ensureStorage() {
@@ -44,4 +45,38 @@ export function writeEventsAll(events: Event[]) {
   ensureStorage();
   const content = events.map((e) => JSON.stringify(e)).join("\n") + "\n";
   fs.writeFileSync(LOG_PATH, content, { encoding: "utf8" });
+}
+
+function readJsonlEvents(filePath: string): Event[] {
+  if (!fs.existsSync(filePath)) return [];
+  const raw = fs.readFileSync(filePath, "utf8");
+  if (!raw.trim()) return [];
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
+}
+
+export function readSegmentEvents(): Event[] {
+  if (!fs.existsSync(SEG_DIR)) return [];
+  const segFiles = fs
+    .readdirSync(SEG_DIR)
+    .filter((f) => f.startsWith("seg-") && f.endsWith(".jsonl"))
+    .sort(); // seg-000001, seg-000002, ...
+
+  const all: Event[] = [];
+  for (const f of segFiles) {
+    const p = path.join(SEG_DIR, f);
+    all.push(...readJsonlEvents(p));
+  }
+  return all;
+}
+
+/**
+ * Lecture complète : segments (scellés) + buffer courant.
+ */
+export function readAllEvents(): Event[] {
+  const seg = readSegmentEvents();
+  const buf = readJsonlEvents(LOG_PATH);
+  return [...seg, ...buf];
 }

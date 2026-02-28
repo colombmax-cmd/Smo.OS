@@ -105,19 +105,19 @@ Security specification:
 
 ## Current Status
 
-Core (v0.1.1)
+Core (v0.1.1)  
 ✅ Event-sourced core  
 ✅ Offline-first synchronization  
 ✅ Deterministic convergence  
 ✅ Causal conflict detection  
 ✅ Append-only conflict resolution  
 
-Security (v0.2.1):
-✅ Segment rotation 
-✅ Merkle integrity per segment 
-✅ Signed manifests
+Security (v0.2.1):  
+✅ Segment rotation  
+✅ Merkle integrity per segment   
+✅ Signed manifests  
 ✅ Segment chaining  
-✅ Strict verification  
+✅ Strict verification    
 
 POC stage — protocol stabilization in progress.
 
@@ -125,12 +125,30 @@ POC stage — protocol stabilization in progress.
 
 ## Roadmap
 
-v0.2.2:
-- External anchoring (anti-rewrite protection)
+Smo.OS evolves along four structural pillars:
 
-v0.3:
-- Multi-node key registry
-- Interoperability hardening
+### Integrity & Sovereignty  
+- ✅ Segment rotation  
+- ✅ Signed manifests  
+- ⏳ External anchoring  
+- ⏳ Key registry & rotation  
+
+### Interoperability  
+- ⏳ Transport protocol  
+- ⏳ Portable bundles  
+- ⏳ Conformance test suite  
+- ⏳ Namespaces & extension registry  
+
+### Performance  
+- ⏳ Snapshots  
+- ⏳ Indexing  
+- ⏳ Retention policies  
+
+### Agent Runtime Safety  
+- ⏳ Sandboxing  
+- ⏳ Capability model  
+- ⏳ Permission system  
+- ⏳ Audit trail  
 
 ---
 
