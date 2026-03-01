@@ -136,7 +136,7 @@ Smo.OS evolves along four structural pillars:
 ### Interoperability  
 - ⏳ Transport protocol  
 - ⏳ Portable bundles  
-- ⏳ Conformance test suite  
+- ✅ Conformance test suite  
 - ⏳ Namespaces & extension registry  
 
 ### Performance  

@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "entity-1": {
+      "id": "entity-1",
+      "name": "Task A",
+      "status": "in_progress",
+      "createdAt": 1700000000000
+    }
+  },
+  "conflicts": [
+    {
+      "entityId": "entity-1",
+      "field": "status",
+      "candidates": [
+        {
+          "value": "in_progress",
+          "eventId": "00000000-0000-0000-0000-000000000102",
+          "origin": "A",
+          "seq": 2,
+          "timestamp": 1700000001000
+        },
+        {
+          "value": "blocked",
+          "eventId": "00000000-0000-0000-0000-000000000201",
+          "origin": "B",
+          "seq": 1,
+          "timestamp": 1700000001000
+        }
+      ],
+      "resolved": true,
+      "chosenEventId": "00000000-0000-0000-0000-000000000102",
+      "resolvedByEventId": "00000000-0000-0000-0000-000000000202",
+      "winner": {
+        "value": "in_progress",
+        "eventId": "00000000-0000-0000-0000-000000000102",
+        "origin": "A",
+        "seq": 2,
+        "timestamp": 1700000001000
+      }
+    }
+  ]
+}

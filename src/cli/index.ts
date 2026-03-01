@@ -9,6 +9,7 @@ import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "
 import { compareEvents } from "../core/compare";
 import { maybeSeal } from "../crypto/maybe_seal";
 
+
 const [, , command, ...args] = process.argv;
 
 function usage() {
@@ -40,7 +41,7 @@ if (command === "create") {
   const { origin, seq, seen } = allocateSeqWithSeen();
   const event: Event = {
     id: uuidv4(),
-    type: "EntityCreated",
+    type: "plos.core/EntityCreated",
     entityId,
     payload: { name, status: "active", createdAt: Date.now() },
     timestamp: Date.now(),
@@ -50,7 +51,6 @@ if (command === "create") {
   };
 
   appendEvent(event);
-  maybeSeal();
   const sealed = maybeSeal();
   console.log("Created entity:", entityId, sealed ? "(sealed)" : "");
   process.exit(0);
@@ -67,7 +67,7 @@ if (command === "update") {
   const { origin, seq, seen } = allocateSeqWithSeen();
   const event: Event = {
     id: uuidv4(),
-    type: "StateUpdated",
+    type: "plos.core/StateUpdated",
     entityId,
     payload: { [key]: guessType(value) },
     timestamp: Date.now(),
@@ -77,7 +77,6 @@ if (command === "update") {
   };
   
   appendEvent(event);
-  maybeSeal();
   const sealed = maybeSeal();
   console.log("Updated", entityId, sealed ? "(sealed)" : "");
   process.exit(0);
@@ -127,7 +126,6 @@ if (command === "sync") {
   }
 mergeSeen(maxByOrigin);
   writeEventsAll(merged);
-  maybeSeal();
   const sealed = maybeSeal();
   console.log("Synced. Local log now contains", merged.length, "events.", sealed ? "(sealed)" : "");
   process.exit(0);
@@ -179,7 +177,7 @@ if (command === "resolve") {
 
   const event: Event = {
     id: uuidv4(),
-    type: "ConflictResolved",
+    type: "plos.core/ConflictResolved",
     entityId,
     payload: { field, chosenEventId },
     timestamp: Date.now(),
@@ -191,6 +189,83 @@ if (command === "resolve") {
   appendEvent(event);
   const sealed = maybeSeal();
   console.log("Conflict resolved:", { entityId, field, chosenEventId }, sealed ? "(sealed)" : "");
+  process.exit(0);
+}
+if (command === "export-bundle") {
+  const outPath = args[0];
+  if (!outPath) {
+    console.error("Usage: export-bundle <path.jsonl>");
+    process.exit(1);
+  }
+
+  const events = readEvents().sort(compareEvents);
+
+  const header = {
+    kind: "plos.bundle/header",
+    bundleVersion: "0.3.0",
+    bundleId: uuidv4(),
+    createdAt: Date.now(),
+    origin: loadMeta().origin,
+  };
+
+  const lines = [
+    JSON.stringify(header),
+    ...events.map((e) =>
+      JSON.stringify({ kind: "plos.bundle/event", event: e })
+    ),
+  ];
+
+  require("fs").writeFileSync(outPath, lines.join("\n") + "\n", "utf8");
+
+  console.log(`Bundle exported: ${outPath} (${events.length} events)`);
+  process.exit(0);
+}
+
+if (command === "import-bundle") {
+  const inPath = args[0];
+  if (!inPath) {
+    console.error("Usage: import-bundle <path.jsonl>");
+    process.exit(1);
+  }
+
+  const fs = require("fs");
+  if (!fs.existsSync(inPath)) {
+    console.error("File not found:", inPath);
+    process.exit(1);
+  }
+
+  const raw = fs.readFileSync(inPath, "utf8").trim();
+  if (!raw) {
+    console.error("Empty bundle");
+    process.exit(1);
+  }
+
+  const lines = raw.split("\n").filter(Boolean);
+
+  const bundleEvents: any[] = [];
+
+  for (const line of lines) {
+    const obj = JSON.parse(line);
+    if (obj.kind === "plos.bundle/event" && obj.event) {
+      bundleEvents.push(obj.event);
+    }
+  }
+
+  const localEvents = readEvents();
+
+  const byId: Record<string, any> = {};
+  for (const e of localEvents) byId[e.id] = e;
+  for (const e of bundleEvents) byId[e.id] = e;
+
+  const merged = Object.values(byId).sort(compareEvents);
+
+  writeEventsAll(merged);
+  maybeSeal();
+
+  console.log(
+    `Bundle imported: ${bundleEvents.length} events, log now ${merged.length}`
+  );
+
   process.exit(0);
 }
 

@@ -1,0 +1,11 @@
+{
+  "entities": {
+    "entity-1": {
+      "id": "entity-1",
+      "name": "Task A",
+      "status": "blocked",
+      "createdAt": 1700000000000
+    }
+  },
+  "conflicts": []
+}
