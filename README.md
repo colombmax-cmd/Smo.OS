@@ -131,6 +131,15 @@ POC stage — protocol stabilization in progress.
 
 ---
 
+## How to validate changes  
+
+Conformance test suit  
+```bash
+npm run conformance
+```
+
+---
+
 ## Roadmap
 
 Smo.OS evolves along four structural pillars:
@@ -204,6 +213,7 @@ Verify segments:
 ```bash
 npm run crypto:verify
 ```
+
 This checks:
 
 - Manifest version
