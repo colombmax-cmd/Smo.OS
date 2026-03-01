@@ -1,0 +1,3 @@
+{"id":"00000000-0000-0000-0000-000000000801","type":"plos.core/EntityCreated","entityId":"entity-1","payload":{"name":"Task A","status":"active","createdAt":1700000000000},"timestamp":1700000000000,"origin":"A","seq":1,"seen":{"A":1}}
+{"id":"00000000-0000-0000-0000-000000000802","type":"plos.core/StateUpdated","entityId":"entity-1","payload":{"status":"in_progress"},"timestamp":1700000001000,"origin":"A","seq":2,"seen":{"A":2}}
+{"id":"00000000-0000-0000-0000-000000000803","type":"plos.core/StateUpdated","entityId":"entity-1","payload":{"status":"done"},"timestamp":1700000001000,"origin":"B","seq":1,"seen":{"A":2,"B":1}}
