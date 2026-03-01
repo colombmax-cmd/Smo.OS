@@ -1,0 +1,2 @@
+{"id":"00000000-0000-0000-0000-000000000601","type":"plos.core/EntityCreated","entityId":"entity-1","payload":{"name":"Task A","createdAt":1700000000000},"timestamp":1700000000000,"origin":"A","seq":1,"seen":{"A":1}}
+{"id":"00000000-0000-0000-0000-000000000602","type":"plos.agent/NoteAdded","entityId":"entity-1","payload":{"text":"hello from agent"},"timestamp":1700000000500,"origin":"A","seq":2,"seen":{"A":2}}

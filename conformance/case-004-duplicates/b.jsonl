@@ -1,0 +1,2 @@
+{"id":"00000000-0000-0000-0000-000000000302","type":"plos.core/StateUpdated","entityId":"entity-1","payload":{"status":"in_progress"},"timestamp":1700000001000,"origin":"A","seq":2,"seen":{"A":2}}
+{"id":"00000000-0000-0000-0000-000000000303","type":"plos.core/StateUpdated","entityId":"entity-1","payload":{"priority":7},"timestamp":1700000002000,"origin":"B","seq":1,"seen":{"B":1}}

@@ -1,15 +1,25 @@
-import { Event } from "./types";
+import { AnyEvent, isCoreEvent } from "./types";
 import { compareEvents } from "./compare";
 
 /**
  * Helpers: tolerate legacy events (read tolerant).
  */
-function normalizeEvent(e: any): Event {
+type NormalizedEvent = AnyEvent & {
+  origin: string;
+  seq: number;
+  seen: Record<string, number>;
+};
+
+function normalizeEvent(e: any): NormalizedEvent {
+  const origin = typeof e?.origin === "string" && e.origin.trim() ? e.origin : "legacy";
+  const seq = typeof e?.seq === "number" && Number.isFinite(e.seq) ? e.seq : 0;
+  const seen = (e?.seen && typeof e.seen === "object") ? e.seen : {};
+
   return {
     ...e,
-    origin: e.origin ?? "legacy",
-    seq: e.seq ?? 0,
-    seen: e.seen ?? {},
+    origin,
+    seq,
+    seen,
   };
 }
 
@@ -56,13 +66,14 @@ type Conflict = {
  * Supports ConflictResolved:
  * - append-only resolution that forces the winner for a given field
  */
-export function rebuildState(events: Event[]) {
-  const sorted = [...events].sort(compareEvents).map(normalizeEvent);
-
+export function rebuildState(events: AnyEvent[]) {
+  const sorted: NormalizedEvent[] = [...events]
+    .filter(isCoreEvent)
+    .sort(compareEvents)
+    .map(normalizeEvent);
   const entities: Record<string, any> = {};
   const conflicts: Conflict[] = [];
-
-  const eventById: Record<string, Event> = {};
+  const eventById: Record<string, NormalizedEvent> = {};
 
   // key = `${entityId}:${field}` -> resolution info
   const resolutions: Record<string, { chosenEventId: string; resolvedByEventId: string }> = {};
@@ -71,7 +82,7 @@ export function rebuildState(events: Event[]) {
   for (const ev of sorted) {
     eventById[ev.id] = ev;
 
-    if (ev.type === "ConflictResolved") {
+    if (ev.type === "plos.core/ConflictResolved") {
       const field = ev.payload?.field;
       const chosenEventId = ev.payload?.chosenEventId;
       if (typeof field === "string" && typeof chosenEventId === "string") {
@@ -84,9 +95,9 @@ export function rebuildState(events: Event[]) {
   }
 
   // ---------- PASS 2: rebuild state + detect conflicts ----------
-  const lastWrite: Record<string, { value: any; event: Event }> = {};
+  const lastWrite: Record<string, { value: any; event: NormalizedEvent }> = {};
 
-  const candidateOf = (ev: Event, value: any): ConflictCandidate => ({
+  const candidateOf = (ev: NormalizedEvent, value: any): ConflictCandidate => ({
     value,
     eventId: ev.id,
     origin: ev.origin,
@@ -94,7 +105,7 @@ export function rebuildState(events: Event[]) {
     timestamp: ev.timestamp,
   });
 
-  const applyWrite = (entityId: string, field: string, value: any, ev: Event) => {
+  const applyWrite = (entityId: string, field: string, value: any, ev: NormalizedEvent) => {
     if (!entities[entityId]) entities[entityId] = { id: entityId };
     entities[entityId][field] = value;
     lastWrite[`${entityId}:${field}`] = { value, event: ev };
@@ -105,16 +116,16 @@ export function rebuildState(events: Event[]) {
     if (!entities[entityId]) entities[entityId] = { id: entityId };
 
     // ConflictResolved doesn't directly change state here; it's applied via enforcement below
-    if (ev.type === "ConflictResolved") continue;
+    if (ev.type === "plos.core/ConflictResolved") continue;
 
-    if (ev.type === "EntityCreated") {
+    if (ev.type === "plos.core/EntityCreated") {
       for (const [k, v] of Object.entries(ev.payload ?? {})) {
         applyWrite(entityId, k, v, ev);
       }
       continue;
     }
 
-    if (ev.type === "StateUpdated") {
+    if (ev.type === "plos.core/StateUpdated") {
       for (const [field, value] of Object.entries(ev.payload ?? {})) {
         const key = `${entityId}:${field}`;
         const prev = lastWrite[key];
@@ -141,7 +152,7 @@ export function rebuildState(events: Event[]) {
               const chosen = eventById[res.chosenEventId];
               if (
                 chosen &&
-                chosen.type === "StateUpdated" &&
+                chosen.type === "plos.core/StateUpdated" &&
                 chosen.payload &&
                 Object.prototype.hasOwnProperty.call(chosen.payload, field)
               ) {
@@ -181,7 +192,7 @@ export function rebuildState(events: Event[]) {
           const chosen = eventById[res.chosenEventId];
           if (
             chosen &&
-            chosen.type === "StateUpdated" &&
+            chosen.type === "plos.core/StateUpdated" &&
             chosen.payload &&
             Object.prototype.hasOwnProperty.call(chosen.payload, field)
           ) {
@@ -193,15 +204,21 @@ export function rebuildState(events: Event[]) {
       continue;
     }
 
-    if (ev.type === "RelationAdded") {
+    if (ev.type === "plos.core/RelationAdded") {
       entities[entityId].relations = entities[entityId].relations || [];
       entities[entityId].relations.push(ev.payload);
       continue;
     }
 
-    if (ev.type === "MetricRecorded") {
+    if (ev.type === "plos.core/MetricRecorded") {
       entities[entityId].metrics = entities[entityId].metrics || [];
       entities[entityId].metrics.push(ev.payload);
+      continue;
+    }
+    if (ev.type === "plos.core/RelationRemoved") {
+      const rels = entities[entityId].relations || [];
+      const id = ev.payload?.id;
+      if (id) entities[entityId].relations = rels.filter((r: any) => r?.id !== id);
       continue;
     }
   }
