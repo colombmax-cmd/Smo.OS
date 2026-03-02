@@ -17,7 +17,7 @@ function computeCurrentLogRoot() {
 
 const { eventCount, root } = computeCurrentLogRoot();
 
-// Message signé : on ne signe pas juste root, on signe un mini “enveloppe” stable.
+// Signed message: we do not sign only the root, we sign a stable envelope payload.
 const messageToSign = `plos-segment-root:v0.2.1\nroot:${root}\nevents:${eventCount}`;
 
 const signature = signBase64(messageToSign);

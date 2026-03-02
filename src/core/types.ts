@@ -8,10 +8,10 @@ export type CoreEventType =
   | "plos.core/MetricRecorded"
   | "plos.core/ConflictResolved";
 
-// Event générique interop : type libre
+// Generic interoperability event type: free-form namespace.
 export type AnyEventType = string;
 
-// Base commune (structure)
+// Shared event envelope (structural fields).
 export type BaseEvent<TType extends string = string, TPayload = any> = {
   id: string;
   type: TType;
@@ -19,16 +19,16 @@ export type BaseEvent<TType extends string = string, TPayload = any> = {
   payload: TPayload;
   timestamp: number;
 
-  // tes champs existants
+  // Legacy-compatible metadata fields.
   origin?: string;
   seq?: number;
   seen?: Record<string, number>;
 };
 
-// Event canonique du core (strict)
+// Canonical core event (strictly typed to plos.core/* enum).
 export type CoreEvent = BaseEvent<CoreEventType>;
 
-// Event interop (tout accepté)
+// Interop event (accept any event namespace/type).
 export type AnyEvent = BaseEvent<AnyEventType>;
 
 export type Event = AnyEvent;

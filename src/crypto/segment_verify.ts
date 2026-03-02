@@ -69,13 +69,13 @@ function computeRootFromEvents(events: any[]): string {
 }
 
 function verifyManifestSignature(manifest: Manifest): boolean {
-  // On vérifie la signature sur le manifest SANS la signature (sinon circulaire)
+  // Verify signature over the manifest with an empty signature field (avoids circular signing).
   const unsigned = { ...manifest, signature: "" };
   const msg = jsonStableStringify(unsigned);
 
-  // ✅ Nouveau comportement:
-  // - Si keyId est présent: on utilise la clé publique du registry (interop)
-  // - Sinon: fallback legacy (clé publique locale)
+  // Current behavior:
+  // - If keyId is present: use the registry public key (interop mode).
+  // - Otherwise: fallback to legacy local public key.
   if (manifest.keyId) {
     try {
       const pubPem = getPublicKeyPemForKeyId(manifest.keyId);
@@ -96,7 +96,7 @@ function validateManifestShape(manifest: Manifest): { ok: boolean; errors: strin
     errors.push(`unsupported version: ${manifest.version} (expected ${SUPPORTED_VERSION})`);
   }
 
-  // algo
+  // algorithms
   if (!manifest.algo) {
     errors.push("missing algo");
   } else {
@@ -123,11 +123,11 @@ function validateManifestShape(manifest: Manifest): { ok: boolean; errors: strin
     errors.push("missing/invalid signature");
   }
 
-  // keying: V0.2.1 exige keyId (interop)
+  // keying: v0.2.1 requires keyId (interop)
   if (!manifest.keyId) errors.push("missing keyId (required in v0.2.1)");
   if (!manifest.origin) errors.push("missing origin (required in v0.2.1)");
 
-  // events count sanity
+  // events count sanity check
   if (typeof manifest.events !== "number" || manifest.events < 0) errors.push("invalid events count");
 
   return { ok: errors.length === 0, errors };
