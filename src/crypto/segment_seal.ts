@@ -29,7 +29,7 @@ function listExistingSegments(): string[] {
 function nextSegmentId(): string {
   const segs = listExistingSegments();
   if (segs.length === 0) return "seg-000001";
-  const last = segs[segs.length - 1]; // ex "seg-000012"
+  const last = segs[segs.length - 1]; // e.g. "seg-000012"
   const n = parseInt(last.split("-")[1], 10);
   const next = (n + 1).toString().padStart(6, "0");
   return `seg-${next}`;
@@ -65,12 +65,12 @@ export function sealAllCurrentEventsIntoNewSegment() {
 
   const { sorted, root } = computeMerkleRootForEvents(events);
 
-  // 1) écrire le segment (JSONL)
+  // 1) Write segment payload (JSONL)
   const segPath = path.join(SEG_DIR, `${segmentId}.jsonl`);
   const content = sorted.map((e) => JSON.stringify(e)).join("\n") + "\n";
   fs.writeFileSync(segPath, content, "utf8");
 
-  // 2) construire le manifest
+  // 2) Build manifest
   const manifest = {
     version: "0.2.1",
     segmentId,
@@ -88,26 +88,26 @@ export function sealAllCurrentEventsIntoNewSegment() {
       merkle: "pairwise-dup-last",
       sig: "ed25519",
     },
-    signature: "", // rempli après
+    signature: "", // filled after signing
   };
 
-  // 3) signer un message structuré (manifest sans signature)
+  // 3) Sign stable manifest payload (manifest with empty signature field)
   const messageToSign = jsonStableStringify({ ...manifest, signature: "" });
   const signature = signBase64(messageToSign);
   manifest.signature = signature;
 
-  // 4) vérifier avant d'écrire (sanity check)
+  // 4) Verify before writing (sanity check)
   const ok = verifyBase64(jsonStableStringify({ ...manifest, signature: "" }), manifest.signature);
   if (!ok) {
     throw new Error("Signature verification failed right after signing (should never happen).");
   }
 
-  // 5) écrire le manifest
+  // 5) Write manifest
   const manifestPath = path.join(SEG_DIR, `${segmentId}.manifest.json`);
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 
-  // 6) option simple : vider le log courant (on repart à zéro)
-  // Comme on est en stratégie 1, les segments sont notre archive, et le log courant est un buffer.
+  // 6) Simple strategy: clear active log buffer after sealing.
+  // With this strategy, segments are the archive and events.jsonl is only a staging buffer.
   writeEventsAll([]);
 
   console.log("Sealed segment:", segmentId);
@@ -117,6 +117,5 @@ export function sealAllCurrentEventsIntoNewSegment() {
   console.log("  Segment:", segPath);
 }
 
-// Exécution directe si lancé en script
-// Ne rien exécuter automatiquement ici.
-// Ce fichier expose juste la fonction.
+// Intentionally no auto-run side effects.
+// This module only exposes sealing primitives for CLI/runtime callers.
