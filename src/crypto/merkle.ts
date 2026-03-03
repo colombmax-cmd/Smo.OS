@@ -3,12 +3,12 @@ import { sha256Hex } from "./hash";
 /**
  * Merkle root "pairwise + duplicate last if odd"
  *
- * Input: leaves = liste de hash hex (sha256) déjà calculés
+ * Input: leaves = list of precomputed SHA-256 hex digests
  * Output: root hash hex
  *
  * Important:
- * - si leaves est vide, on renvoie sha256("") pour avoir une valeur définie
- * - si impair, on duplique le dernier pour former une paire
+ * - if leaves is empty, return sha256("") as a deterministic defined value
+ * - if odd length, duplicate the last leaf to form a pair
  */
 export function merkleRootHex(leaves: string[]): string {
   if (leaves.length === 0) return sha256Hex("");
@@ -20,7 +20,7 @@ export function merkleRootHex(leaves: string[]): string {
 
     for (let i = 0; i < level.length; i += 2) {
       const left = level[i];
-      const right = level[i + 1] ?? left; // duplication si impair
+      const right = level[i + 1] ?? left; // duplicate on odd level length
       next.push(sha256Hex(left + right));
     }
 
@@ -31,10 +31,10 @@ export function merkleRootHex(leaves: string[]): string {
 }
 
 /**
- * Helper pratique: construit les feuilles en hashant des strings,
- * puis calcule la racine.
+ * Convenience helper: hash each input string into leaves,
+ * then compute the Merkle root.
  *
- * (On l'utilisera plus tard quand on aura la canonicalisation JSON.)
+ * (Useful when data is not yet canonicalized JSON.)
  */
 export function merkleRootFromStringsHex(items: string[]): string {
   const leaves = items.map((s) => sha256Hex(s));

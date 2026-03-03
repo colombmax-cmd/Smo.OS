@@ -99,7 +99,15 @@ Each segment:
 - Is chained to previous segments
 
 Security specification:
-→ `docs/security-v0.2.1.md`
+→ `docs/protocol/security-v0.2.1.md`
+
+## Conformance
+
+Smo.OS includes a deterministic conformance test suite validating distributed merge,    
+canonical state projection (plos.core/* only), conflict detection and resolution, idempotence,  
+timestamp tie-breaking, causal ordering via seen, and preservation of unknown namespaces.  
+
+Any implementation claiming Smo.OS compatibility must pass the conformance suite.
 
 ---
 
@@ -123,20 +131,35 @@ POC stage — protocol stabilization in progress.
 
 ---
 
+## How to validate changes  
+
+Conformance test suite (core replay/merge semantics):  
+```bash
+npm run conformance
+```
+
+Crypto key-policy conformance (registry/verification policy):
+```bash
+npm run conformance:crypto
+```
+
+---
+
 ## Roadmap
 
 Smo.OS evolves along four structural pillars:
 
 ### Integrity & Sovereignty  
-- ✅ Segment rotation  
-- ✅ Signed manifests  
+- ✅ Segment rotation v0.2.1  
+- ✅ Signed manifests v0.2.1  
 - ⏳ External anchoring  
-- ⏳ Key registry & rotation  
+- ✅ Key registry v0.1 
+- ⏳ Key rotation workflows  
 
 ### Interoperability  
 - ⏳ Transport protocol  
 - ⏳ Portable bundles  
-- ✅ Conformance test suite  
+- ✅ Conformance test suite v0.3.0  
 - ⏳ Namespaces & extension registry  
 
 ### Performance  
@@ -196,6 +219,7 @@ Verify segments:
 ```bash
 npm run crypto:verify
 ```
+
 This checks:
 
 - Manifest version

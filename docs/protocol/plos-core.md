@@ -86,3 +86,25 @@ Resolution MUST NOT modify previous events.
 State is reconstructed by replaying events in order.
 
 Resolved conflicts override default winners.
+
+---
+
+## 8. Conformance  
+
+Smo.OS includes a deterministic conformance test suite located in /conformance.
+
+An implementation claiming Smo.OS compatibility MUST pass the conformance suite.
+
+The suite validates the following normative properties:
+
+- Union by id: Event merge is a set union by event.id.
+- Deterministic ordering: Events are ordered by timestamp, then origin (default "legacy"), then seq (default 0), then id.
+- Canonical projection: Only plos.core/* events affect canonical state.
+- Unknown preservation: Non-core namespaces MUST be preserved and synchronized.
+- Conflict semantics: Concurrent writes to the same field produce a conflict.
+- Conflict resolution: plos.core/ConflictResolved deterministically selects a winner.
+- Causality via seen: If B declares A in seen, B is causally after A.
+- Idempotence: Re-importing identical events does not alter canonical state.
+- Commutativity: Merge result is independent of input ordering.
+
+Conformance requirements apply to the current specification version.

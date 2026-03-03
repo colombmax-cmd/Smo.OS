@@ -15,7 +15,8 @@
     "crypto:root": "ts-node src/crypto/segment_root.ts",
     "crypto:seal": "ts-node src/crypto/segment_seal_cli.ts",
     "crypto:verify": "ts-node src/crypto/segment_verify.ts",
-    "conformance": "ts-node conformance/run.ts"
+    "conformance": "ts-node conformance/run.ts",
+    "conformance:crypto": "ts-node conformance/crypto-key-policy-run.ts"
   },
   "name": "smo.os",
   "version": "1.0.0",
