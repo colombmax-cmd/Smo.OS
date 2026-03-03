@@ -4,7 +4,7 @@ import { compareEvents } from "../core/compare";
 import { jsonStableStringify } from "./canonical";
 import { sha256Hex } from "./hash";
 import { merkleRootHex } from "./merkle";
-import { verifyBase64, verifyBase64WithPublicKey, getPublicKeyPemForKeyId } from "./sign";
+import { verifyBase64, verifyBase64WithPublicKey, getPublicKeyPemForKeyId, getRegistryKeyMeta } from "./sign";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const SEG_DIR = path.join(DATA_DIR, "segments");
@@ -133,6 +133,46 @@ function validateManifestShape(manifest: Manifest): { ok: boolean; errors: strin
   return { ok: errors.length === 0, errors };
 }
 
+
+function validateManifestKeyPolicy(manifest: Manifest): { ok: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (!manifest.keyId) {
+    errors.push("missing keyId (required in v0.2.1)");
+    return { ok: false, errors };
+  }
+
+  let keyMeta: ReturnType<typeof getRegistryKeyMeta> | null = null;
+  try {
+    keyMeta = getRegistryKeyMeta(manifest.keyId);
+  } catch {
+    errors.push(`unknown keyId in registry: ${manifest.keyId}`);
+    return { ok: false, errors };
+  }
+
+  if (keyMeta.alg !== manifest.algo.sig) {
+    errors.push(`key algorithm mismatch: key=${keyMeta.alg}, manifest=${manifest.algo.sig}`);
+  }
+
+  if (keyMeta.status === "revoked") {
+    errors.push(`key is revoked: ${manifest.keyId}`);
+  }
+
+  if (typeof keyMeta.notBefore === "number" && manifest.createdAt < keyMeta.notBefore) {
+    errors.push(`manifest createdAt (${manifest.createdAt}) is before key notBefore (${keyMeta.notBefore})`);
+  }
+
+  if (typeof keyMeta.notAfter === "number" && manifest.createdAt > keyMeta.notAfter) {
+    errors.push(`manifest createdAt (${manifest.createdAt}) is after key notAfter (${keyMeta.notAfter})`);
+  }
+
+  if (typeof keyMeta.revokedAt === "number" && manifest.createdAt >= keyMeta.revokedAt) {
+    errors.push(`manifest createdAt (${manifest.createdAt}) is at/after key revokedAt (${keyMeta.revokedAt})`);
+  }
+
+  return { ok: errors.length === 0, errors };
+}
+
 export function verifyAllSegments() {
   const segIds = listSegmentIds();
   if (segIds.length === 0) {
@@ -157,12 +197,15 @@ export function verifyAllSegments() {
 
     const sigOk = verifyManifestSignature(manifest);
 
+    const keyPolicy = validateManifestKeyPolicy(manifest);
+    const keyPolicyOk = keyPolicy.ok;
+
     const chainOk =
       (manifest.prevSegmentRoot ?? null) === (prevRoot ?? null);
 
     const eventsCountOk = events.length === manifest.events;
 
-    const ok = shapeOk && rootOk && sigOk && chainOk && eventsCountOk;
+    const ok = shapeOk && rootOk && sigOk && keyPolicyOk && chainOk && eventsCountOk;
     allOk = allOk && ok;
 
     console.log(`\n${segId}`);
@@ -173,6 +216,10 @@ export function verifyAllSegments() {
       console.log(`    manifest: ${manifest.root}`);
     }
     console.log(`  sig:    ${sigOk ? "OK" : "KO"}`);
+    console.log(`  key:    ${keyPolicyOk ? "OK" : "KO"}`);
+    if (!keyPolicyOk) {
+      for (const err of keyPolicy.errors) console.log(`    - ${err}`);
+    }
     console.log(`  chain:  ${chainOk ? "OK" : "KO"}`);
     if (!chainOk) {
       console.log(`    expected prev: ${prevRoot}`);

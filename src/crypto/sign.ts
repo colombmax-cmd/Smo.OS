@@ -12,9 +12,9 @@ const PUB_PATH = path.join(KEYS_DIR, "ed25519.pub.pem");
 const REG_PATH = path.join(KEYS_DIR, "registry.json");
 const REGISTRY_VERSION = "0.1";
 
-type KeyStatus = "active" | "retired" | "revoked";
+export type KeyStatus = "active" | "retired" | "revoked";
 
-type RegistryKey = {
+export type RegistryKey = {
   origin: string;
   alg: "ed25519";
   pubPath: string;
@@ -131,6 +131,14 @@ function loadRegistry(): RegistryV1 {
   }
 
   throw new Error(`Unsupported registry format at ${REG_PATH}`);
+}
+
+
+export function getRegistryKeyMeta(keyId: string): RegistryKey {
+  const reg = loadRegistry();
+  const entry = reg.keys[keyId];
+  if (!entry) throw new Error(`Unknown keyId: ${keyId}`);
+  return entry;
 }
 
 function ensureRegistry() {
