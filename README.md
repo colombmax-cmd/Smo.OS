@@ -133,9 +133,14 @@ POC stage — protocol stabilization in progress.
 
 ## How to validate changes  
 
-Conformance test suit  
+Conformance test suite (core replay/merge semantics):  
 ```bash
 npm run conformance
+```
+
+Crypto key-policy conformance (registry/verification policy):
+```bash
+npm run conformance:crypto
 ```
 
 ---
@@ -148,7 +153,8 @@ Smo.OS evolves along four structural pillars:
 - ✅ Segment rotation v0.2.1  
 - ✅ Signed manifests v0.2.1  
 - ⏳ External anchoring  
-- ⏳ Key registry & rotation  
+- ✅ Key registry v0.1 
+- ⏳ Key rotation workflows  
 
 ### Interoperability  
 - ⏳ Transport protocol  

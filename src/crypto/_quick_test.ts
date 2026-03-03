@@ -8,13 +8,13 @@ const c = "event C";
 const root1 = merkleRootFromStringsHex([a, b, c]);
 console.log("root1:", root1);
 
-// Modifie 1 caractère
+// Change a single character
 const root2 = merkleRootFromStringsHex([a, b + "!", c]);
 console.log("root2:", root2);
 
 console.log("changed?", root1 !== root2);
 
-// Option: montrer aussi une feuille
+// Optional: also display one leaf hash
 console.log("leaf(event A):", sha256Hex(a));
 
 import { jsonStableStringify } from "./canonical";

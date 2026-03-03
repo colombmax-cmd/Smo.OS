@@ -12,6 +12,7 @@ function readJsonl(filePath: string): AnyEvent[] {
   return raw.split("\n").filter(Boolean).map((l) => JSON.parse(l));
 }
 
+// Merge by id then apply canonical deterministic ordering.
 function mergeEvents(a: AnyEvent[], b: AnyEvent[]): AnyEvent[] {
   const byId: Record<string, AnyEvent> = {};
   for (const e of a) byId[e.id] = e;
@@ -19,6 +20,7 @@ function mergeEvents(a: AnyEvent[], b: AnyEvent[]): AnyEvent[] {
   return Object.values(byId).sort(compareEvents);
 }
 
+// Execute one fixture directory and compare projection with expected output.
 function runCase(caseDir: string) {
   const aPath = path.join(caseDir, "a.jsonl");
   const bPath = path.join(caseDir, "b.jsonl");
@@ -40,6 +42,7 @@ function runCase(caseDir: string) {
   console.log(`OK: ${path.basename(caseDir)}`);
 }
 
+// Discover all cases under /conformance and run them sequentially.
 function main() {
   const base = path.resolve(process.cwd(), "conformance");
   const dirs = fs
