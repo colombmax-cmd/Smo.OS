@@ -26,6 +26,7 @@ Primary file path:
       "origin": "default",
       "alg": "ed25519",
       "pubPath": "data/keys/ed25519.pub.pem",
+      "privPath": "data/keys/ed25519.priv.pem",
       "status": "active",
       "createdAt": 1730000000000,
       "notBefore": 1730000000000
@@ -52,6 +53,10 @@ Required fields:
 - `status`: `active | retired | revoked`
 - `createdAt`: creation timestamp (ms epoch)
 - `notBefore`: validity start timestamp (ms epoch)
+
+Operational field (required for local signer workflow, optional for verifier-only nodes):
+
+- `privPath`: relative path to PEM private key
 
 Optional fields:
 
@@ -104,3 +109,20 @@ Normalization rules:
 
 - Additive optional fields are preferred over field replacement.
 - Breaking schema changes must bump the schema version and provide migration guidance.
+
+
+## 7. Rotation workflow
+
+CLI:
+
+- `npm run crypto:key:rotate`
+- `npm run crypto:key:rotate -- --origin <origin>`
+
+Expected behavior:
+
+- Current `activeKeyId` becomes `retired`
+- Retired key gets `notAfter = rotatedAt`
+- New key is generated and set as `activeKeyId`
+- New key entry references old key via `replaces`
+
+Strict verification must continue to validate historical segments with the retired key and reject post-rotation manifests signed with keys beyond validity windows.

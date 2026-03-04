@@ -5,8 +5,7 @@ import { compareEvents } from "../core/compare";
 import { jsonStableStringify } from "./canonical";
 import { sha256Hex } from "./hash";
 import { merkleRootHex } from "./merkle";
-import { signBase64, verifyBase64, verifyBase64WithPublicKey } from "./sign";
-import { getActiveKeyId } from "./sign";
+import { signBase64, verifyBase64WithPublicKey, getActiveKeyId, getPublicKeyPemForKeyId } from "./sign";
 import { loadMeta } from "../core/meta";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
@@ -71,12 +70,15 @@ export function sealAllCurrentEventsIntoNewSegment() {
   fs.writeFileSync(segPath, content, "utf8");
 
   // 2) Build manifest
+  const keyId = getActiveKeyId();
+  const createdAt = Date.now();
+
   const manifest = {
     version: "0.2.1",
     segmentId,
-    createdAt: Date.now(),
+    createdAt,
     origin: loadMeta().origin,
-    keyId: getActiveKeyId(),
+    keyId,
     events: sorted.length,
     firstEventId: sorted[0]?.id ?? null,
     lastEventId: sorted[sorted.length - 1]?.id ?? null,
@@ -97,7 +99,8 @@ export function sealAllCurrentEventsIntoNewSegment() {
   manifest.signature = signature;
 
   // 4) Verify before writing (sanity check)
-  const ok = verifyBase64(jsonStableStringify({ ...manifest, signature: "" }), manifest.signature);
+  const pubPem = getPublicKeyPemForKeyId(manifest.keyId);
+  const ok = verifyBase64WithPublicKey(jsonStableStringify({ ...manifest, signature: "" }), manifest.signature, pubPem);
   if (!ok) {
     throw new Error("Signature verification failed right after signing (should never happen).");
   }

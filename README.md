@@ -104,6 +104,9 @@ Security specification:
 External anchoring MVP specification:
 → `docs/protocol/external-anchoring-v0.1.md`
 
+Key rotation workflow specification:
+→ `docs/protocol/key-rotation-v0.1.md`
+
 ## Conformance
 
 Smo.OS includes a deterministic conformance test suite validating distributed merge,    
@@ -137,19 +140,34 @@ POC stage — protocol stabilization in progress.
 
 ## How to validate changes  
 
-Conformance test suite (core replay/merge semantics):  
+Conformance globale (core + crypto):
 ```bash
 npm run conformance
 ```
 
-Crypto key-policy conformance (registry/verification policy):
+Conformance core (replay/merge semantics):
+```bash
+npm run conformance:core
+```
+
+Conformance crypto (agrégée):
 ```bash
 npm run conformance:crypto
 ```
 
-Crypto anchoring conformance (anchor publish/verify policy):
+Conformance crypto spécifique (key policy):
+```bash
+npm run conformance:crypto:key-policy
+```
+
+Conformance crypto spécifique (anchor publish/verify policy):
 ```bash
 npm run conformance:crypto:anchor
+```
+
+Conformance crypto spécifique (active->retired workflow):
+```bash
+npm run conformance:crypto:rotation
 ```
 
 ---
@@ -163,7 +181,7 @@ Smo.OS evolves along four structural pillars:
 - ✅ Signed manifests v0.2.1  
 - ✅ External anchoring MVP v0.1
 - ✅ Key registry v0.1 
-- ⏳ Key rotation workflows  
+- ✅ Key rotation workflows v0.1  
 
 ### Interoperability  
 - ⏳ Transport protocol  
@@ -192,29 +210,29 @@ npm install
 ```
 Create an entity:
 ```bash
-npm run dev create "Coach AI"
+npm run core:create -- "Coach AI"
 ```
 Update state:
 ```bash
-npm run dev update <entityId> status=in_progress
+npm run core:update -- <entityId> status=in_progress
 ```
 List reconstructed state:
 ```bash
-npm run dev list
+npm run core:list
 ```
 Export full event log:
 ```bash
-npm run dev export
+npm run core:export
 ```
 ## Conflict Resolution
 
 List conflicts:
 ```bash
-npm run dev conflicts
+npm run core:conflicts
 ```
 Resolve a conflict:
 ```bash
-npm run dev resolve <entityId> <field> <chosenEventId>
+npm run core:resolve -- <entityId> <field> <chosenEventId>
 ```
 Resolution never rewrites history.
 
@@ -237,6 +255,11 @@ npm run crypto:anchor
 Verify anchor for latest segment:
 ```bash
 npm run crypto:anchor:verify
+```
+
+Rotate active signing key:
+```bash
+npm run crypto:key:rotate
 ```
 
 This checks:
