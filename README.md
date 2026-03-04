@@ -101,6 +101,9 @@ Each segment:
 Security specification:
 → `docs/protocol/security-v0.2.1.md`
 
+External anchoring MVP specification:
+→ `docs/protocol/external-anchoring-v0.1.md`
+
 ## Conformance
 
 Smo.OS includes a deterministic conformance test suite validating distributed merge,    
@@ -126,6 +129,7 @@ Security (v0.2.1):
 ✅ Signed manifests  
 ✅ Segment chaining  
 ✅ Strict verification    
+✅ External anchoring (MVP)
 
 POC stage — protocol stabilization in progress.
 
@@ -143,6 +147,11 @@ Crypto key-policy conformance (registry/verification policy):
 npm run conformance:crypto
 ```
 
+Crypto anchoring conformance (anchor publish/verify policy):
+```bash
+npm run conformance:crypto:anchor
+```
+
 ---
 
 ## Roadmap
@@ -152,7 +161,7 @@ Smo.OS evolves along four structural pillars:
 ### Integrity & Sovereignty  
 - ✅ Segment rotation v0.2.1  
 - ✅ Signed manifests v0.2.1  
-- ⏳ External anchoring  
+- ✅ External anchoring MVP v0.1
 - ✅ Key registry v0.1 
 - ⏳ Key rotation workflows  
 
@@ -218,6 +227,16 @@ npm run crypto:seal
 Verify segments:
 ```bash
 npm run crypto:verify
+```
+
+Publish anchor for latest segment:
+```bash
+npm run crypto:anchor
+```
+
+Verify anchor for latest segment:
+```bash
+npm run crypto:anchor:verify
 ```
 
 This checks:
