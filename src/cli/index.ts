@@ -21,8 +21,8 @@ function usage() {
   console.log("  sync <otherLogPath>");
   console.log("");
   console.log("Examples:");
-  console.log('  npm run dev create "Stabiliser finances 2026"');
-  console.log("  npm run dev list");
+  console.log('  npm run core:create -- "Stabiliser finances 2026"');
+  console.log("  npm run core:list");
 }
 
 if (!command) {
