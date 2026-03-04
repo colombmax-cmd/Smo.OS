@@ -21,7 +21,7 @@ Any future docs/* normative formats (anchors, snapshots, bundles)
 
 CLI surface (anything documented in README)
 
-npm run dev <command>
+npm run core:<command>
 
 npm run crypto:<command>
 
