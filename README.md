@@ -186,6 +186,17 @@ Transport protocol (pull incremental):
 npm run transport:pull -- --url http://127.0.0.1:8787/transport
 ```
 
+Transport protocol (sandbox strict mode + policy):
+```bash
+npm run transport:serve -- --port 8787 --sandbox-policy ./docs/examples/sandbox-policy.example.json
+```
+
+Environment variables supported:
+- `PLOS_SANDBOX_POLICY_PATH`
+- `PLOS_SANDBOX_MODE` (`strict` by default, `compat` optional)
+
+Policy supports either flat `rules` or layered `layers.system|workspace|session` (permission-system precedence).
+
 Registry namespaces (validation):
 ```bash
 npm run registry:validate
@@ -221,10 +232,10 @@ Smo.OS evolves along four structural pillars:
 - ⏳ Retention policies  
 
 ### Agent Runtime Safety  
-- ⏳ Sandboxing  
-- ⏳ Capability model  
-- ⏳ Permission system  
-- ⏳ Audit trail  
+- ⏳ Sandboxing (draft spec: `docs/protocol/agent-runtime-sandboxing-spec-0.1.md`)  
+- ⏳ Capability model (draft spec: `docs/protocol/agent-runtime-capability-model-spec-0.1.md`)  
+- ⏳ Permission system (draft spec: `docs/protocol/agent-runtime-permission-system-spec-0.1.md`)  
+- ⏳ Audit trail (draft spec: `docs/protocol/agent-runtime-audit-trail-spec-0.1.md`)  
 
 ---
 
