@@ -1,0 +1,29 @@
+{
+  "registryVersion": "0.1.0",
+  "version": "0.1",
+  "namespaces": [
+    {
+      "namespace": "plos.core",
+      "owner": "Smo.OS",
+      "status": "stable",
+      "version": "0.1.1",
+      "spec": "docs/protocol/plos-core.md",
+      "eventTypes": [
+        "EntityCreated",
+        "StateUpdated",
+        "ConflictDetected",
+        "ConflictResolved"
+      ],
+      "specVersion": "0.1.1"
+    },
+    {
+      "namespace": "plos.security",
+      "owner": "Smo.OS",
+      "status": "stable",
+      "version": "0.2.1",
+      "spec": "docs/protocol/security-v0.2.1.md",
+      "eventTypes": [],
+      "specVersion": "0.2.1"
+    }
+  ]
+}

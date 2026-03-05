@@ -35,7 +35,12 @@
     "conformance:crypto:rotation": "ts-node conformance/crypto-key-rotation-run.ts",
     "crypto:anchor": "ts-node src/crypto/anchor_publish_cli.ts",
     "crypto:anchor:verify": "ts-node src/crypto/anchor_verify_cli.ts",
-    "crypto:key:rotate": "ts-node src/crypto/key_rotate_cli.ts"
+    "crypto:key:rotate": "ts-node src/crypto/key_rotate_cli.ts",
+    "transport:serve": "ts-node src/transport/server_cli.ts",
+    "transport:pull": "ts-node src/transport/pull_cli.ts",
+    "registry:validate": "ts-node src/registry/namespaces_cli.ts validate",
+    "registry:list": "ts-node src/registry/namespaces_cli.ts list",
+    "registry:check-event": "ts-node src/registry/namespaces_cli.ts check-event"
   },
   "name": "smo.os",
   "version": "1.0.0",

@@ -8,6 +8,7 @@ import { Event } from "../core/types";
 import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "../core/meta";
 import { compareEvents } from "../core/compare";
 import { maybeSeal } from "../crypto/maybe_seal";
+import { exportPortableBundle, importPortableBundle, ExportProfile } from "../bundles/portable_bundle";
 
 
 const [, , command, ...args] = process.argv;
@@ -194,76 +195,36 @@ if (command === "resolve") {
 if (command === "export-bundle") {
   const outPath = args[0];
   if (!outPath) {
-    console.error("Usage: export-bundle <path.jsonl>");
+    console.error("Usage: export-bundle <path.plosbundle> [--profile events-only|segments-only|hybrid]");
     process.exit(1);
   }
 
-  const events = readEvents().sort(compareEvents);
+  const profileArgIdx = args.indexOf("--profile");
+  const profile = (profileArgIdx >= 0 ? args[profileArgIdx + 1] : "hybrid") as ExportProfile;
+  if (!["events-only", "segments-only", "hybrid"].includes(profile)) {
+    console.error("Invalid --profile. Expected events-only | segments-only | hybrid");
+    process.exit(1);
+  }
 
-  const header = {
-    kind: "plos.bundle/header",
-    bundleVersion: "0.3.0",
-    bundleId: uuidv4(),
-    createdAt: Date.now(),
-    origin: loadMeta().origin,
-  };
-
-  const lines = [
-    JSON.stringify(header),
-    ...events.map((e) =>
-      JSON.stringify({ kind: "plos.bundle/event", event: e })
-    ),
-  ];
-
-  require("fs").writeFileSync(outPath, lines.join("\n") + "\n", "utf8");
-
-  console.log(`Bundle exported: ${outPath} (${events.length} events)`);
+  const result = exportPortableBundle(outPath, profile, loadMeta().origin || "unknown");
+  console.log(
+    `Bundle exported: ${result.outPath} (profile=${result.profile}, events=${result.eventCount}, segments=${result.segmentCount}, anchors=${result.anchorCount})`
+  );
   process.exit(0);
 }
 
 if (command === "import-bundle") {
   const inPath = args[0];
   if (!inPath) {
-    console.error("Usage: import-bundle <path.jsonl>");
+    console.error("Usage: import-bundle <path.plosbundle>");
     process.exit(1);
   }
 
-  const fs = require("fs");
-  if (!fs.existsSync(inPath)) {
-    console.error("File not found:", inPath);
-    process.exit(1);
-  }
-
-  const raw = fs.readFileSync(inPath, "utf8").trim();
-  if (!raw) {
-    console.error("Empty bundle");
-    process.exit(1);
-  }
-
-  const lines = raw.split("\n").filter(Boolean);
-
-  const bundleEvents: any[] = [];
-
-  for (const line of lines) {
-    const obj = JSON.parse(line);
-    if (obj.kind === "plos.bundle/event" && obj.event) {
-      bundleEvents.push(obj.event);
-    }
-  }
-
-  const localEvents = readEvents();
-
-  const byId: Record<string, any> = {};
-  for (const e of localEvents) byId[e.id] = e;
-  for (const e of bundleEvents) byId[e.id] = e;
-
-  const merged = Object.values(byId).sort(compareEvents);
-
-  writeEventsAll(merged);
-  maybeSeal();
-
+  const result = importPortableBundle(inPath);
+  const sealed = maybeSeal();
   console.log(
-    `Bundle imported: ${bundleEvents.length} events, log now ${merged.length}`
+    `Bundle imported: profile=${result.profile}, events=${result.importedEvents}, segments=${result.importedSegments}`,
+    sealed ? "(sealed)" : ""
   );
 
   process.exit(0);

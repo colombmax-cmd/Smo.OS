@@ -83,7 +83,7 @@ sequenceDiagram
 - Causal detection (seen) identifies real offline conflicts
 - Append-only resolution preserves history and sovereignty
 
-## Security Layer (v0.2.1)
+## Security Layer (spec 0.2.1)
 
 Smo.OS includes a cryptographic integrity layer for local storage.
 
@@ -107,6 +107,12 @@ External anchoring MVP specification:
 Key rotation workflow specification:
 → `docs/protocol/key-rotation-v0.1.md`
 
+Versioning convention proposal:
+→ `docs/protocol/versioning-convention.md`
+
+Spec version baseline:
+→ `docs/protocol/version-baseline.md`
+
 ## Conformance
 
 Smo.OS includes a deterministic conformance test suite validating distributed merge,    
@@ -119,14 +125,14 @@ Any implementation claiming Smo.OS compatibility must pass the conformance suite
 
 ## Current Status
 
-Core (v0.1.1)  
+Core (spec 0.1.1)  
 ✅ Event-sourced core  
 ✅ Offline-first synchronization  
 ✅ Deterministic convergence  
 ✅ Causal conflict detection  
 ✅ Append-only conflict resolution  
 
-Security (v0.2.1):  
+Security (spec 0.2.1):  
 ✅ Segment rotation  
 ✅ Merkle integrity per segment   
 ✅ Signed manifests  
@@ -170,6 +176,26 @@ Conformance crypto spécifique (active->retired workflow):
 npm run conformance:crypto:rotation
 ```
 
+Transport protocol (serveur local):
+```bash
+npm run transport:serve -- --port 8787
+```
+
+Transport protocol (pull incremental):
+```bash
+npm run transport:pull -- --url http://127.0.0.1:8787/transport
+```
+
+Registry namespaces (validation):
+```bash
+npm run registry:validate
+```
+
+Registry namespaces (list):
+```bash
+npm run registry:list
+```
+
 ---
 
 ## Roadmap
@@ -177,17 +203,17 @@ npm run conformance:crypto:rotation
 Smo.OS evolves along four structural pillars:
 
 ### Integrity & Sovereignty  
-- ✅ Segment rotation v0.2.1  
-- ✅ Signed manifests v0.2.1  
-- ✅ External anchoring MVP v0.1
-- ✅ Key registry v0.1 
-- ✅ Key rotation workflows v0.1  
+- ✅ Segment rotation spec 0.2.1  
+- ✅ Signed manifests spec 0.2.1  
+- ✅ External anchoring MVP spec 0.1.0
+- ✅ Key registry spec 0.1.0 
+- ✅ Key rotation workflows spec 0.1.0  
 
 ### Interoperability  
-- ⏳ Transport protocol  
-- ⏳ Portable bundles  
-- ✅ Conformance test suite v0.3.0  
-- ⏳ Namespaces & extension registry  
+- ✅ Transport protocol spec 0.1.0 (draft + reference CLI/server: `docs/protocol/transport-protocol-spec-0.1.md`)  
+- ✅ Portable bundles spec 0.1.0 (draft + CLI import/export: `docs/protocol/portable-bundles-spec-0.1.md`)  
+- ✅ Conformance test suite spec 0.1.0  
+- ✅ Namespaces & extension registry spec 0.1.0 (draft + registry CLI: `docs/protocol/namespaces-extensions-registry-spec-0.1.md`)  
 
 ### Performance  
 - ⏳ Snapshots  
