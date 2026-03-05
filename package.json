@@ -27,7 +27,7 @@
     "crypto:root": "ts-node src/crypto/segment_root.ts",
     "crypto:seal": "ts-node src/crypto/segment_seal_cli.ts",
     "crypto:verify": "ts-node src/crypto/segment_verify.ts",
-    "conformance": "npm run conformance:core && npm run conformance:crypto",
+    "conformance": "npm run conformance:core && npm run conformance:crypto && npm run conformance:sandbox",
     "conformance:core": "ts-node conformance/run.ts",
     "conformance:crypto": "npm run conformance:crypto:key-policy && npm run conformance:crypto:anchor && npm run conformance:crypto:rotation",
     "conformance:crypto:key-policy": "ts-node conformance/crypto-key-policy-run.ts",
@@ -35,7 +35,13 @@
     "conformance:crypto:rotation": "ts-node conformance/crypto-key-rotation-run.ts",
     "crypto:anchor": "ts-node src/crypto/anchor_publish_cli.ts",
     "crypto:anchor:verify": "ts-node src/crypto/anchor_verify_cli.ts",
-    "crypto:key:rotate": "ts-node src/crypto/key_rotate_cli.ts"
+    "crypto:key:rotate": "ts-node src/crypto/key_rotate_cli.ts",
+    "transport:serve": "ts-node src/transport/server_cli.ts",
+    "transport:pull": "ts-node src/transport/pull_cli.ts",
+    "registry:validate": "ts-node src/registry/namespaces_cli.ts validate",
+    "registry:list": "ts-node src/registry/namespaces_cli.ts list",
+    "registry:check-event": "ts-node src/registry/namespaces_cli.ts check-event",
+    "conformance:sandbox": "ts-node conformance/sandbox-run.ts"
   },
   "name": "smo.os",
   "version": "1.0.0",
