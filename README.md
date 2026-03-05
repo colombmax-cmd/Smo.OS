@@ -94,6 +94,24 @@ Any implementation claiming Smo.OS compatibility must pass the conformance suite
 ---
 
 
+## `@plos/protocol` — Stable Reduced SDK API
+
+Smo.OS now exposes a reduced and stable SDK surface for third-party developers via the `@plos/protocol` package.
+
+Current stable surface:
+- Event contracts + deterministic merge helpers
+- Canonical state projection helper
+- Transport envelope contracts + helpers
+- Runtime-safe schema validation (events/envelopes)
+
+Example (external repo):
+```ts
+import { mergeEventsById, projectCanonicalState, parseEvent } from "@plos/protocol";
+
+const merged = mergeEventsById(localEvents.map(parseEvent), remoteEvents.map(parseEvent));
+const state = projectCanonicalState(merged);
+```
+
 ## How to validate changes  
 
 Conformance globale (core + crypto):
@@ -196,6 +214,21 @@ Smo.OS evolves along five structural pillars:
 - ✅ Audit trail spec 0.1.0 (draft + hash-chain verification: `docs/protocol/agent-runtime-audit-trail-spec-0.1.md`)  
 
 ---
+
+
+## POC Orchestrator + Exécutants (minimal)
+
+Le repo inclut une version minimaliste de la séparation des rôles:
+
+- **Orchestrator**: route une tâche vers un exécutant selon la capacité demandée.
+- **Exécutant**: implémente la compétence réelle et retourne un résultat structuré.
+
+Commandes:
+```bash
+npm run agents:poc:list
+npm run agents:poc:run -- summarize.text '{"text":"PLOS permet un socle interopérable pour orchestrer des agents spécialisés"}'
+npm run agents:poc:run -- classify.priority '{"text":"urgent: finaliser le protocole aujourd'hui"}'
+```
 
 ## Quick Start
 
