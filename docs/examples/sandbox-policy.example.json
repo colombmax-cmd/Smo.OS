@@ -1,0 +1,46 @@
+{
+  "policy_version": "0.1.0",
+  "default_effect": "deny",
+  "layers": {
+    "system": [
+      {
+        "id": "deny-secrets-default",
+        "effect": "deny",
+        "action": "secret.read",
+        "resource": "secret://*",
+        "priority": 100
+      }
+    ],
+    "workspace": [
+      {
+        "id": "allow-transport-hello",
+        "effect": "allow",
+        "action": "registry.query",
+        "resource": "transport://hello",
+        "priority": 50
+      },
+      {
+        "id": "allow-events-read",
+        "effect": "allow",
+        "action": "fs.read",
+        "resource": "file:///data/events",
+        "priority": 50
+      },
+      {
+        "id": "allow-segments-manifest-read",
+        "effect": "allow",
+        "action": "fs.read",
+        "resource": "file:///data/segments/*.manifest.json",
+        "priority": 50
+      },
+      {
+        "id": "allow-segments-jsonl-read",
+        "effect": "allow",
+        "action": "fs.read",
+        "resource": "file:///data/segments/*.jsonl",
+        "priority": 50
+      }
+    ],
+    "session": []
+  }
+}

@@ -83,36 +83,6 @@ sequenceDiagram
 - Causal detection (seen) identifies real offline conflicts
 - Append-only resolution preserves history and sovereignty
 
-## Security Layer (spec 0.2.1)
-
-Smo.OS includes a cryptographic integrity layer for local storage.
-
-Event logs are rotated into immutable, signed segments.
-
-Each segment:
-
-- Is deterministically ordered
-- Uses canonical JSON (`json-stable-v1`)
-- Builds a Merkle tree (`SHA-256`)
-- Produces a root hash
-- Is signed using Ed25519
-- Is chained to previous segments
-
-Security specification:
-→ `docs/protocol/security-v0.2.1.md`
-
-External anchoring MVP specification:
-→ `docs/protocol/external-anchoring-v0.1.md`
-
-Key rotation workflow specification:
-→ `docs/protocol/key-rotation-v0.1.md`
-
-Versioning convention proposal:
-→ `docs/protocol/versioning-convention.md`
-
-Spec version baseline:
-→ `docs/protocol/version-baseline.md`
-
 ## Conformance
 
 Smo.OS includes a deterministic conformance test suite validating distributed merge,    
@@ -123,26 +93,6 @@ Any implementation claiming Smo.OS compatibility must pass the conformance suite
 
 ---
 
-## Current Status
-
-Core (spec 0.1.1)  
-✅ Event-sourced core  
-✅ Offline-first synchronization  
-✅ Deterministic convergence  
-✅ Causal conflict detection  
-✅ Append-only conflict resolution  
-
-Security (spec 0.2.1):  
-✅ Segment rotation  
-✅ Merkle integrity per segment   
-✅ Signed manifests  
-✅ Segment chaining  
-✅ Strict verification    
-✅ External anchoring (MVP)
-
-POC stage — protocol stabilization in progress.
-
----
 
 ## How to validate changes  
 
@@ -186,6 +136,17 @@ Transport protocol (pull incremental):
 npm run transport:pull -- --url http://127.0.0.1:8787/transport
 ```
 
+Transport protocol (sandbox strict mode + policy):
+```bash
+npm run transport:serve -- --port 8787 --sandbox-policy ./docs/examples/sandbox-policy.example.json
+```
+
+Environment variables supported:
+- `PLOS_SANDBOX_POLICY_PATH`
+- `PLOS_SANDBOX_MODE` (`strict` by default, `compat` optional)
+
+Policy supports either flat `rules` or layered `layers.system|workspace|session` (permission-system precedence).
+
 Registry namespaces (validation):
 ```bash
 npm run registry:validate
@@ -200,7 +161,15 @@ npm run registry:list
 
 ## Roadmap
 
-Smo.OS evolves along four structural pillars:
+Smo.OS evolves along five structural pillars:
+
+### Core
+- ✅ Core protocol spec (event model + deterministic ordering): `docs/protocol/plos-core.md`
+- ✅ Offline-first synchronization
+- ✅ Deterministic convergence
+- ✅ Causal conflict detection
+- ✅ Append-only conflict resolution
+- ✅ Core conformance suite (`npm run conformance:core`)
 
 ### Integrity & Sovereignty  
 - ✅ Segment rotation spec 0.2.1  
@@ -221,10 +190,10 @@ Smo.OS evolves along four structural pillars:
 - ⏳ Retention policies  
 
 ### Agent Runtime Safety  
-- ⏳ Sandboxing  
-- ⏳ Capability model  
-- ⏳ Permission system  
-- ⏳ Audit trail  
+- ✅ Sandboxing spec 0.1.0 (draft + runtime enforcement: `docs/protocol/agent-runtime-sandboxing-spec-0.1.md`)  
+- ✅ Capability model spec 0.1.0 (draft + runtime capabilities: `docs/protocol/agent-runtime-capability-model-spec-0.1.md`)  
+- ✅ Permission system spec 0.1.0 (draft + layered policy engine: `docs/protocol/agent-runtime-permission-system-spec-0.1.md`)  
+- ✅ Audit trail spec 0.1.0 (draft + hash-chain verification: `docs/protocol/agent-runtime-audit-trail-spec-0.1.md`)  
 
 ---
 
