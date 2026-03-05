@@ -3,6 +3,7 @@ import * as path from "path";
 import { compareEvents } from "../core/compare";
 import { readAllEvents } from "../core/log";
 import { Envelope, TRANSPORT_PROTOCOL, errorEnvelope, isValidEnvelopeShape, okEnvelope } from "./protocol";
+import { SandboxRuntime } from "../runtime/sandbox";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const SEG_DIR = path.join(DATA_DIR, "segments");
@@ -12,7 +13,15 @@ type TransportServerOptions = {
   maxEventsPerResponse: number;
   maxBytesPerResponse: number;
   maxSegmentBytes: number;
+  sandbox?: SandboxRuntime;
 };
+
+function sandboxGuard(opts: TransportServerOptions, requestId: string, action: string, resource: string): Envelope | null {
+  if (!opts.sandbox) return null;
+  const decision = opts.sandbox.evaluate({ action, resource });
+  if (decision.decision === "allow") return null;
+  return errorEnvelope(requestId, "bad_request", `sandbox deny: ${decision.reasonCode}`);
+}
 
 function listSegmentIds(): string[] {
   if (!fs.existsSync(SEG_DIR)) return [];
@@ -63,6 +72,8 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/hello") {
+    const denied = sandboxGuard(opts, reqEnv.requestId, "registry.query", "transport://hello");
+    if (denied) return denied;
     return okEnvelope(reqEnv.requestId, "plos.transport/hello.ok", {
       nodeId: opts.nodeId,
       supports: { eventsPull: true, segmentsPull: true, bundlesPull: false },
@@ -75,6 +86,8 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/events.pull") {
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/events");
+    if (denied) return denied;
     const payload = reqEnv.payload || {};
     const parsedCursor = parseCursor(payload.cursorByOrigin);
     if (!parsedCursor.ok) return errorEnvelope(reqEnv.requestId, "cursor_invalid", parsedCursor.reason);
@@ -119,6 +132,8 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/segments.manifests.pull") {
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/segments/*.manifest.json");
+    if (denied) return denied;
     const payload = reqEnv.payload || {};
     const limitReq = payload.limit === undefined ? 100 : toInt(payload.limit);
     if (limitReq === null || limitReq < 1) return errorEnvelope(reqEnv.requestId, "bad_request", "limit must be integer >= 1");
@@ -140,6 +155,8 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/segments.content.pull") {
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/segments/*.jsonl");
+    if (denied) return denied;
     const payload = reqEnv.payload || {};
     const segmentId = payload.segmentId;
     if (!segmentId || typeof segmentId !== "string") {
