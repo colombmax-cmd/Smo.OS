@@ -94,6 +94,24 @@ Any implementation claiming Smo.OS compatibility must pass the conformance suite
 ---
 
 
+## `@plos/protocol` — Stable Reduced SDK API
+
+Smo.OS now exposes a reduced and stable SDK surface for third-party developers via the `@plos/protocol` package.
+
+Current stable surface:
+- Event contracts + deterministic merge helpers
+- Canonical state projection helper
+- Transport envelope contracts + helpers
+- Runtime-safe schema validation (events/envelopes)
+
+Example (external repo):
+```ts
+import { mergeEventsById, projectCanonicalState, parseEvent } from "@plos/protocol";
+
+const merged = mergeEventsById(localEvents.map(parseEvent), remoteEvents.map(parseEvent));
+const state = projectCanonicalState(merged);
+```
+
 ## How to validate changes  
 
 Conformance globale (core + crypto):
@@ -197,6 +215,21 @@ Smo.OS evolves along five structural pillars:
 
 ---
 
+
+## POC Orchestrator + Exécutants (minimal)
+
+Le repo inclut une version minimaliste de la séparation des rôles:
+
+- **Orchestrator**: route une tâche vers un exécutant selon la capacité demandée.
+- **Exécutant**: implémente la compétence réelle et retourne un résultat structuré.
+
+Commandes:
+```bash
+npm run agents:poc:list
+npm run agents:poc:run -- summarize.text '{"text":"PLOS permet un socle interopérable pour orchestrer des agents spécialisés"}'
+npm run agents:poc:run -- classify.priority '{"text":"urgent: finaliser le protocole aujourd'hui"}'
+```
+
 ## Quick Start
 
 Install dependencies:
@@ -288,3 +321,61 @@ Smo.OS explores a future where personal cognitive state is:
 ## Contributing
 
 Issues, ideas and experiments welcome.
+
+## Publier Smo.OS en paquet APT
+
+Vous pouvez maintenant produire un paquet Debian (`.deb`) puis publier un dépôt APT statique (par ex. via GitHub Pages) pour permettre une installation distante.
+
+### 1) Construire le paquet `.deb`
+
+```bash
+./scripts/build-deb.sh
+```
+
+Sortie générée :
+- `dist/apt/smo-os_<version>_all.deb`
+
+### 2) Générer l'index du dépôt APT
+
+```bash
+./scripts/build-apt-repo.sh
+```
+
+Sortie générée :
+- `dist/apt-repo/dists/stable/...`
+- `dist/apt-repo/pool/main/...`
+
+### 3) Publier le dépôt
+
+Le workflow GitHub Actions `publish-apt-repository` publie automatiquement `dist/apt-repo` sur la branche `gh-pages` à chaque tag `v*`.
+
+### 4) Installer depuis une autre machine
+
+```bash
+curl -fsSL https://<owner>.github.io/Smo.OS/ | head
+sudo mkdir -p /etc/apt/sources.list.d
+printf 'deb [trusted=yes] https://<owner>.github.io/Smo.OS stable main\n' | sudo tee /etc/apt/sources.list.d/smo-os.list
+sudo apt update
+sudo apt install smo-os
+```
+
+Puis lancer :
+
+```bash
+smo-os list
+```
+
+> Note: sur Debian/Ubuntu, les noms de paquets APT sont en minuscules (`smo-os`).
+
+### Développer des agents externes (sans cloner Smo.OS)
+
+Cas recommandé: le développeur d'agents consomme l'infrastructure Smo.OS déjà publiée,
+sans modifier le core Smo.OS.
+
+Workflow conseillé:
+- installer le runtime CLI via APT (`sudo apt install smo-os`)
+- créer son propre repo d'agents séparé
+- piloter Smo.OS via le binaire `smo-os` et/ou le SDK publié
+
+Le clone du repo Smo.OS n'est nécessaire que pour contribuer au core
+(fixes internes, évolution du protocole, packaging, etc.).
