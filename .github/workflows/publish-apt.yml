@@ -1,0 +1,40 @@
+name: publish-apt-repository
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Debian packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils jq
+
+      - name: Build .deb package
+        run: ./scripts/build-deb.sh
+
+      - name: Build apt repository metadata
+        run: ./scripts/build-apt-repo.sh
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist/apt-repo
+          force_orphan: true
