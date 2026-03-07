@@ -42,17 +42,11 @@
     "registry:list": "ts-node src/registry/namespaces_cli.ts list",
     "registry:check-event": "ts-node src/registry/namespaces_cli.ts check-event",
     "conformance:sandbox": "ts-node conformance/sandbox-run.ts",
-    "agents:poc": "ts-node src/agents/poc_agents_cli.ts",
-    "agents:poc:list": "ts-node src/agents/poc_agents_cli.ts list",
-    "agents:poc:run": "ts-node src/agents/poc_agents_cli.ts run",
-    "build": "tsc -p tsconfig.json",
-    "protocol:smoke": "node -e \"const sdk=require('./dist/index.js'); console.log(Object.keys(sdk).sort().slice(0,12));\"",
-    "prepack": "npm run build"
+    "build": "tsc -p tsconfig.json"
   },
-  "name": "@plos/protocol",
+  "name": "smo-os",
   "version": "1.0.0",
-  "description": "PLOS protocol SDK (stable reduced API)",
-  "main": "dist/index.js",
+  "description": "Smo.OS protocol reference implementation",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/colombmax-cmd/Smo.OS.git"
@@ -65,17 +59,5 @@
     "url": "https://github.com/colombmax-cmd/Smo.OS/issues"
   },
   "homepage": "https://github.com/colombmax-cmd/Smo.OS#readme",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "docs/protocol"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js"
-    }
-  }
+  "private": true
 }
