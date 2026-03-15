@@ -194,9 +194,32 @@ Smo.OS evolves along five structural pillars:
 - ✅ Capability model spec 0.1.0 (draft + runtime capabilities: `docs/protocol/agent-runtime-capability-model-spec-0.1.md`)  
 - ✅ Permission system spec 0.1.0 (draft + layered policy engine: `docs/protocol/agent-runtime-permission-system-spec-0.1.md`)  
 - ✅ Audit trail spec 0.1.0 (draft + hash-chain verification: `docs/protocol/agent-runtime-audit-trail-spec-0.1.md`)  
+- ✅ Memory Access Layer firewall (spec + implementation + conformance checks: `docs/protocol/memory-access-layer-spec-0.1.md`)  
 
 ---
 
+
+## Memory Access Layer (MAL) Firewall
+
+Smo.OS includes a native Memory Access Layer for grant-based firewalling of memory access:
+
+- default deny enforcement (`missing grant` / invalid / expired => deny),
+- identity-bound grants (`agentId` + `sessionId`),
+- scope-limited and capability-limited views,
+- structure-only discovery for orchestrator scope targeting (no payload data),
+- auditable access decisions and renewal outcomes.
+
+References:
+- Spec: `docs/protocol/memory-access-layer-spec-0.1.md`
+- Implementation plan: `docs/protocol/memory-access-layer-implementation-plan.md`
+- Operations guide + protocol examples: `docs/protocol/memory-access-layer-operations-guide-0.1.md`
+- Runtime implementation: `src/agents/memory_access_manager.ts`
+
+Validation commands:
+```bash
+npm run test:mal
+npm run build
+```
 
 ## Quick Start
 
