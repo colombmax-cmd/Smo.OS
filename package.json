@@ -47,7 +47,8 @@
     "agents:poc:run": "ts-node src/agents/poc_agents_cli.ts run",
     "build": "tsc -p tsconfig.json",
     "protocol:smoke": "node -e \"const sdk=require('./dist/index.js'); console.log(Object.keys(sdk).sort().slice(0,12));\"",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test:mal": "ts-node src/agents/memory_access_manager.test.ts"
   },
   "name": "@plos/protocol",
   "version": "1.0.0",
