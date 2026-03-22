@@ -23,21 +23,21 @@
         "id": "allow-events-read",
         "effect": "allow",
         "action": "fs.read",
-        "resource": "file:///data/events",
+        "resource": "file:///shared-store/events",
         "priority": 50
       },
       {
         "id": "allow-segments-manifest-read",
         "effect": "allow",
         "action": "fs.read",
-        "resource": "file:///data/segments/*.manifest.json",
+        "resource": "file:///shared-store/segments/*.manifest.json",
         "priority": 50
       },
       {
         "id": "allow-segments-jsonl-read",
         "effect": "allow",
         "action": "fs.read",
-        "resource": "file:///data/segments/*.jsonl",
+        "resource": "file:///shared-store/segments/*.jsonl",
         "priority": 50
       }
     ],

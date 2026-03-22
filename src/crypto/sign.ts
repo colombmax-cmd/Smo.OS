@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import { generateKeyPairSync, sign, verify } from "crypto";
+import { ensureStorageRoot, resolveManagedPath, storagePath, toManagedPath } from "../core/storage";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const KEYS_DIR = path.join(DATA_DIR, "keys");
+const DATA_DIR = storagePath();
+const KEYS_DIR = storagePath("keys");
 
 // Legacy default keypair paths (kept for compatibility with existing local data).
 const LEGACY_PRIV_PATH = path.join(KEYS_DIR, "ed25519.priv.pem");
@@ -40,7 +41,7 @@ type LegacyRegistry = {
 };
 
 function ensureKeysDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureStorageRoot();
   if (!fs.existsSync(KEYS_DIR)) fs.mkdirSync(KEYS_DIR, { recursive: true });
 }
 
@@ -60,8 +61,8 @@ function makeDefaultRegistryV1(): RegistryV1 {
       [keyId]: {
         origin,
         alg: "ed25519",
-        pubPath: "data/keys/ed25519.pub.pem",
-        privPath: "data/keys/ed25519.priv.pem",
+        pubPath: toManagedPath("keys", "ed25519.pub.pem"),
+        privPath: toManagedPath("keys", "ed25519.priv.pem"),
         status: "active",
         createdAt: now,
         notBefore: now,
@@ -97,8 +98,8 @@ function normalizeLegacyRegistry(legacy: LegacyRegistry): RegistryV1 {
     keys[keyId] = {
       origin: key.origin,
       alg: key.alg,
-      pubPath: key.pubPath,
-      privPath: "data/keys/ed25519.priv.pem",
+      pubPath: key.pubPath.startsWith("data/") ? key.pubPath.slice("data/".length) : key.pubPath,
+      privPath: toManagedPath("keys", "ed25519.priv.pem"),
       status: keyId === legacy.active ? "active" : "retired",
       createdAt: now,
       notBefore: now,
@@ -131,7 +132,15 @@ function loadRegistry(): RegistryV1 {
     let changed = false;
     for (const entry of Object.values(raw.keys)) {
       if (!entry.privPath) {
-        entry.privPath = "data/keys/ed25519.priv.pem";
+        entry.privPath = toManagedPath("keys", "ed25519.priv.pem");
+        changed = true;
+      }
+      if (entry.pubPath.startsWith("data/")) {
+        entry.pubPath = entry.pubPath.slice("data/".length);
+        changed = true;
+      }
+      if (entry.privPath.startsWith("data/")) {
+        entry.privPath = entry.privPath.slice("data/".length);
         changed = true;
       }
     }
@@ -176,7 +185,7 @@ export function getPublicKeyPemForKeyId(keyId: string): string {
   const reg = loadRegistry();
   const entry = reg.keys[keyId];
   if (!entry) throw new Error(`Unknown keyId: ${keyId}`);
-  const pubAbs = path.resolve(process.cwd(), entry.pubPath);
+  const pubAbs = resolveManagedPath(entry.pubPath);
   return fs.readFileSync(pubAbs, "utf8");
 }
 
@@ -206,8 +215,8 @@ function ensureActiveKeypair() {
   const active = reg.keys[reg.activeKeyId];
   if (!active) throw new Error(`Active key missing in registry: ${reg.activeKeyId}`);
 
-  const privAbs = path.resolve(process.cwd(), active.privPath ?? "data/keys/ed25519.priv.pem");
-  const pubAbs = path.resolve(process.cwd(), active.pubPath);
+  const privAbs = resolveManagedPath(active.privPath ?? toManagedPath("keys", "ed25519.priv.pem"));
+  const pubAbs = resolveManagedPath(active.pubPath);
   ensureKeypairAt(privAbs, pubAbs);
 }
 
@@ -230,10 +239,10 @@ export function rotateActiveKey(originArg?: string): { oldKeyId: string; newKeyI
   const now = Date.now();
 
   const base = keyFileBase(newKeyId);
-  const pubPath = `data/keys/${base}.pub.pem`;
-  const privPath = `data/keys/${base}.priv.pem`;
+  const pubPath = toManagedPath("keys", `${base}.pub.pem`);
+  const privPath = toManagedPath("keys", `${base}.priv.pem`);
 
-  ensureKeypairAt(path.resolve(process.cwd(), privPath), path.resolve(process.cwd(), pubPath));
+  ensureKeypairAt(resolveManagedPath(privPath), resolveManagedPath(pubPath));
 
   oldKey.status = "retired";
   oldKey.notAfter = now;
@@ -262,7 +271,7 @@ export function signBase64(message: string): string {
   const active = reg.keys[reg.activeKeyId];
   if (!active) throw new Error(`Active key missing in registry: ${reg.activeKeyId}`);
 
-  const privateKeyPem = fs.readFileSync(path.resolve(process.cwd(), active.privPath ?? "data/keys/ed25519.priv.pem"), "utf8");
+  const privateKeyPem = fs.readFileSync(resolveManagedPath(active.privPath ?? toManagedPath("keys", "ed25519.priv.pem")), "utf8");
   const sig = sign(null, Buffer.from(message, "utf8"), privateKeyPem);
   return sig.toString("base64");
 }

@@ -29,7 +29,7 @@ On rotation at `rotatedAt`:
 
 1. current `activeKeyId` becomes `retired`
 2. retired key gets `notAfter = rotatedAt`
-3. a new key pair is generated and written under `data/keys/`
+3. a new key pair is generated and written under `shared-store/keys/`
 4. new key entry is added with:
    - `status: active`
    - `notBefore = rotatedAt`

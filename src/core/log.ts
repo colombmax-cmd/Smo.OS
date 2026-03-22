@@ -1,16 +1,15 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Event } from "./types";
+import { ensureStorageRoot, storagePath } from "./storage";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const LOG_PATH = path.join(DATA_DIR, "events.jsonl");
-const SEG_DIR = path.join(DATA_DIR, "segments");
+const DATA_DIR = storagePath();
+const LOG_PATH = storagePath("events.jsonl");
+const SEG_DIR = storagePath("segments");
 
 // Ensure data directory and log file exist
 function ensureStorage() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  ensureStorageRoot();
   if (!fs.existsSync(LOG_PATH)) {
     fs.writeFileSync(LOG_PATH, "", { encoding: "utf8" });
   }

@@ -4,13 +4,14 @@ import * as path from "path";
 import { execFileSync } from "child_process";
 import { compareEvents } from "../core/compare";
 import { readAllEvents, writeEventsAll } from "../core/log";
+import { storagePath } from "../core/storage";
 import { jsonStableStringify } from "../crypto/canonical";
 import { sha256Hex } from "../crypto/hash";
 import { verifyAnchor } from "../crypto/anchor";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const SEG_DIR = path.join(DATA_DIR, "segments");
-const ANCHOR_DIR = path.join(DATA_DIR, "anchors");
+const DATA_DIR = storagePath();
+const SEG_DIR = storagePath("segments");
+const ANCHOR_DIR = storagePath("anchors");
 
 export type ExportProfile = "events-only" | "segments-only" | "hybrid";
 

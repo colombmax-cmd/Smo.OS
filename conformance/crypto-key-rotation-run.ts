@@ -8,13 +8,22 @@ const TS_NODE_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "ts-node");
 const SEAL_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "segment_seal_cli.ts");
 const VERIFY_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "segment_verify.ts");
 const ROTATE_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "key_rotate_cli.ts");
+const STORAGE_ENV = "PLOS_STORAGE_DIR";
+
+function fixtureStorageDir(dir: string): string {
+  return path.join(dir, "shared-store");
+}
 
 function runTs(scriptPath: string, cwd: string, args: string[] = []) {
-  return spawnSync(TS_NODE_BIN, [scriptPath, ...args], { cwd, encoding: "utf8" });
+  return spawnSync(TS_NODE_BIN, [scriptPath, ...args], {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(cwd) },
+  });
 }
 
 function writeBase(dir: string) {
-  const dataDir = path.join(dir, "data");
+  const dataDir = fixtureStorageDir(dir);
   fs.mkdirSync(dataDir, { recursive: true });
 
   const e1 = {
@@ -37,7 +46,7 @@ function writeBase(dir: string) {
 }
 
 function appendSecondEvent(dir: string) {
-  const dataDir = path.join(dir, "data");
+  const dataDir = fixtureStorageDir(dir);
   const e2 = {
     id: "00000000-0000-0000-0000-000000009202",
     type: "plos.core/EntityUpdated",
@@ -58,12 +67,12 @@ function appendSecondEvent(dir: string) {
 }
 
 function readManifest(dir: string, seg: string) {
-  const p = path.join(dir, "data", "segments", `${seg}.manifest.json`);
+  const p = path.join(fixtureStorageDir(dir), "segments", `${seg}.manifest.json`);
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
 function writeManifest(dir: string, seg: string, manifest: any) {
-  const p = path.join(dir, "data", "segments", `${seg}.manifest.json`);
+  const p = path.join(fixtureStorageDir(dir), "segments", `${seg}.manifest.json`);
   fs.writeFileSync(p, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 }
 
