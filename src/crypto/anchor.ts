@@ -1,11 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
+import { ensureStorageRoot, storagePath } from "../core/storage";
 import { jsonStableStringify } from "./canonical";
 import { sha256Hex } from "./hash";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const SEG_DIR = path.join(DATA_DIR, "segments");
-const ANCHOR_DIR = path.join(DATA_DIR, "anchors");
+const DATA_DIR = storagePath();
+const SEG_DIR = storagePath("segments");
+const ANCHOR_DIR = storagePath("anchors");
 
 const ANCHOR_VERSION = "0.1";
 const SUPPORTED_BACKEND = "hash-attest-v1";
@@ -35,7 +36,7 @@ type Manifest = {
 };
 
 function ensureAnchorDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureStorageRoot();
   if (!fs.existsSync(ANCHOR_DIR)) fs.mkdirSync(ANCHOR_DIR, { recursive: true });
 }
 

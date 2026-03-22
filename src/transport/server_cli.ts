@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { handleEnvelope, parseRequestBody } from "./server";
 import { errorEnvelope } from "./protocol";
+import { storagePath } from "../core/storage";
 import { DEFAULT_SANDBOX_POLICY, SandboxAuditEvent, SandboxContext, SandboxPolicy, SandboxRuntime } from "../runtime/sandbox";
 
 function argValue(name: string): string | undefined {
@@ -54,7 +55,7 @@ function loadSandboxPolicy(): SandboxPolicy | undefined {
 }
 
 function makeAuditSink(runId: string): (event: SandboxAuditEvent) => void {
-  const auditDir = path.resolve(process.cwd(), "data", "audit");
+  const auditDir = storagePath("audit");
   fs.mkdirSync(auditDir, { recursive: true });
   const auditPath = path.join(auditDir, `sandbox-${runId}.jsonl`);
   return (event: SandboxAuditEvent) => {

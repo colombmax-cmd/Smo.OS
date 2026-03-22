@@ -8,13 +8,13 @@ The following are considered public and must follow compatibility rules:
 
 On-disk formats
 
-data/events.jsonl (buffer)
+shared-store/events.jsonl (buffer)
 
-data/segments/seg-XXXXXX.jsonl
+shared-store/segments/seg-XXXXXX.jsonl
 
-data/segments/seg-XXXXXX.manifest.json
+shared-store/segments/seg-XXXXXX.manifest.json
 
-data/keys/registry.json (if used for verification)
+shared-store/keys/registry.json (if used for verification)
 
 Any future docs/* normative formats (anchors, snapshots, bundles)
 

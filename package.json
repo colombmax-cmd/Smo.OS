@@ -18,6 +18,7 @@
     "core:export": "ts-node src/cli/index.ts export",
     "core:sync": "ts-node src/cli/index.ts sync",
     "core:origin": "ts-node src/cli/index.ts origin",
+    "core:storage": "ts-node src/cli/index.ts storage",
     "core:reset": "ts-node src/cli/index.ts reset",
     "core:conflicts": "ts-node src/cli/index.ts conflicts",
     "core:resolve": "ts-node src/cli/index.ts resolve",

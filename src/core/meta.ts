@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import * as path from "path";
+import { ensureStorageRoot, storagePath } from "./storage";
 
 export interface Meta {
   origin: string;
@@ -7,11 +7,11 @@ export interface Meta {
   seen: Record<string, number>; // max seq known per origin
 }
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const META_PATH = path.join(DATA_DIR, "meta.json");
+const DATA_DIR = storagePath();
+const META_PATH = storagePath("meta.json");
 
 function ensureMetaFile() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureStorageRoot();
 
   if (!fs.existsSync(META_PATH)) {
     const defaultMeta: Meta = { origin: "default", nextSeq: 1, seen: {} };
@@ -71,7 +71,7 @@ export function mergeSeen(maxByOrigin: Record<string, number>) {
 
 // Optional: reset helper
 export function resetMeta(origin = "default") {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureStorageRoot();
   const meta: Meta = { origin, nextSeq: 1, seen: { [origin]: 0 } };
   fs.writeFileSync(META_PATH, JSON.stringify(meta, null, 2), "utf8");
 }

@@ -15,9 +15,14 @@ const TS_NODE_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "ts-node");
 const SEAL_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "segment_seal_cli.ts");
 const ANCHOR_PUBLISH_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "anchor_publish_cli.ts");
 const ANCHOR_VERIFY_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "anchor_verify_cli.ts");
+const STORAGE_ENV = "PLOS_STORAGE_DIR";
+
+function fixtureStorageDir(dir: string): string {
+  return path.join(dir, "shared-store");
+}
 
 function writeFixtureBase(dir: string) {
-  const dataDir = path.join(dir, "data");
+  const dataDir = fixtureStorageDir(dir);
   fs.mkdirSync(dataDir, { recursive: true });
 
   const event = {
@@ -40,26 +45,34 @@ function writeFixtureBase(dir: string) {
 }
 
 function sealFixture(dir: string) {
-  const sealed = spawnSync(TS_NODE_BIN, [SEAL_SCRIPT], { cwd: dir, encoding: "utf8" });
+  const sealed = spawnSync(TS_NODE_BIN, [SEAL_SCRIPT], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(dir) },
+  });
   if (sealed.status !== 0) {
     throw new Error(`Failed to seal fixture:\n${sealed.stdout}\n${sealed.stderr}`);
   }
 }
 
 function publishAnchor(dir: string) {
-  const anchored = spawnSync(TS_NODE_BIN, [ANCHOR_PUBLISH_SCRIPT], { cwd: dir, encoding: "utf8" });
+  const anchored = spawnSync(TS_NODE_BIN, [ANCHOR_PUBLISH_SCRIPT], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(dir) },
+  });
   if (anchored.status !== 0) {
     throw new Error(`Failed to publish anchor:\n${anchored.stdout}\n${anchored.stderr}`);
   }
 }
 
 function readAnchor(dir: string): any {
-  const p = path.join(dir, "data", "anchors", "seg-000001.anchor.json");
+  const p = path.join(fixtureStorageDir(dir), "anchors", "seg-000001.anchor.json");
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
 function writeAnchor(dir: string, anchor: any) {
-  const p = path.join(dir, "data", "anchors", "seg-000001.anchor.json");
+  const p = path.join(fixtureStorageDir(dir), "anchors", "seg-000001.anchor.json");
   fs.writeFileSync(p, JSON.stringify(anchor, null, 2) + "\n", "utf8");
 }
 
@@ -72,7 +85,7 @@ const cases: CaseDef[] = [
   {
     name: "case-002-anchor-missing-file",
     mutate: (dir) => {
-      fs.rmSync(path.join(dir, "data", "anchors", "seg-000001.anchor.json"));
+      fs.rmSync(path.join(fixtureStorageDir(dir), "anchors", "seg-000001.anchor.json"));
     },
     expectCode: 1,
     expectIncludes: "anchor file not found",
@@ -116,7 +129,11 @@ function runCase(c: CaseDef) {
   publishAnchor(fixtureDir);
   c.mutate?.(fixtureDir);
 
-  const verify = spawnSync(TS_NODE_BIN, [ANCHOR_VERIFY_SCRIPT], { cwd: fixtureDir, encoding: "utf8" });
+  const verify = spawnSync(TS_NODE_BIN, [ANCHOR_VERIFY_SCRIPT], {
+    cwd: fixtureDir,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(fixtureDir) },
+  });
   const output = `${verify.stdout}\n${verify.stderr}`;
   const code = verify.status ?? 1;
 

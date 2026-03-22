@@ -2,11 +2,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { compareEvents } from "../core/compare";
 import { readAllEvents } from "../core/log";
+import { storageFileUrl, storagePath } from "../core/storage";
 import { Envelope, TRANSPORT_PROTOCOL, errorEnvelope, isValidEnvelopeShape, okEnvelope } from "./protocol";
 import { SandboxRuntime } from "../runtime/sandbox";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const SEG_DIR = path.join(DATA_DIR, "segments");
+const DATA_DIR = storagePath();
+const SEG_DIR = storagePath("segments");
 
 type TransportServerOptions = {
   nodeId: string;
@@ -86,7 +87,7 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/events.pull") {
-    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/events");
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", storageFileUrl("events"));
     if (denied) return denied;
     const payload = reqEnv.payload || {};
     const parsedCursor = parseCursor(payload.cursorByOrigin);
@@ -132,7 +133,7 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/segments.manifests.pull") {
-    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/segments/*.manifest.json");
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", `${storageFileUrl("segments")}/*.manifest.json`);
     if (denied) return denied;
     const payload = reqEnv.payload || {};
     const limitReq = payload.limit === undefined ? 100 : toInt(payload.limit);
@@ -155,7 +156,7 @@ export function handleEnvelope(reqEnv: Envelope, opts: TransportServerOptions): 
   }
 
   if (reqEnv.type === "plos.transport/segments.content.pull") {
-    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", "file:///data/segments/*.jsonl");
+    const denied = sandboxGuard(opts, reqEnv.requestId, "fs.read", `${storageFileUrl("segments")}/*.jsonl`);
     if (denied) return denied;
     const payload = reqEnv.payload || {};
     const segmentId = payload.segmentId;

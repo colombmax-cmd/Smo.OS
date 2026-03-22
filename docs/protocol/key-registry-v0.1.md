@@ -11,7 +11,7 @@ The registry provides key discovery metadata for signature verification and key 
 
 Primary file path:
 
-- `data/keys/registry.json`
+- `shared-store/keys/registry.json`
 
 ---
 
@@ -25,8 +25,8 @@ Primary file path:
     "default#ed25519-1": {
       "origin": "default",
       "alg": "ed25519",
-      "pubPath": "data/keys/ed25519.pub.pem",
-      "privPath": "data/keys/ed25519.priv.pem",
+      "pubPath": "keys/ed25519.pub.pem",
+      "privPath": "keys/ed25519.priv.pem",
       "status": "active",
       "createdAt": 1730000000000,
       "notBefore": 1730000000000
@@ -90,7 +90,7 @@ Legacy shape:
     "default#ed25519-1": {
       "origin": "default",
       "alg": "ed25519",
-      "pubPath": "data/keys/ed25519.pub.pem"
+      "pubPath": "keys/ed25519.pub.pem"
     }
   }
 }

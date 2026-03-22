@@ -25,7 +25,7 @@ Non-goals (MVP):
 
 Anchors are stored under:
 
-- `data/anchors/seg-XXXXXX.anchor.json`
+- `shared-store/anchors/seg-XXXXXX.anchor.json`
 
 One anchor file maps to one segment (`seg-XXXXXX`).
 

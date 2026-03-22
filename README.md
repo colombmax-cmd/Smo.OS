@@ -37,7 +37,7 @@ flowchart TB
   I[Interfaces / Apps / Agents<br/>CLI · Mobile · Web · LLM · Coach]
   O[Ontologies<br/>Finance · Health · Admin · Habits]
   C[Smo.OS Core<br/>Event Model<br/>Append-only Log<br/>Deterministic Ordering<br/>Causality seen<br/>Conflict Detection<br/>Offline Sync]
-  S[Local Storage<br/>data/events.jsonl<br/>data/meta.json]
+  S[Shared Store<br/>~/.local/share/plos/shared-store/events.jsonl<br/>~/.local/share/plos/shared-store/meta.json]
 
   I --> O
   O --> C
@@ -142,6 +142,7 @@ npm run transport:serve -- --port 8787 --sandbox-policy ./docs/examples/sandbox-
 ```
 
 Environment variables supported:
+- `PLOS_STORAGE_DIR` (override the shared store location; default: `~/.local/share/plos/shared-store` or `$XDG_DATA_HOME/plos/shared-store`)
 - `PLOS_SANDBOX_POLICY_PATH`
 - `PLOS_SANDBOX_MODE` (`strict` by default, `compat` optional)
 
@@ -221,6 +222,22 @@ npm run test:mal
 npm run build
 ```
 
+## Shared Store
+
+By default, Smo.OS now persists its event log, metadata, keys, segments, anchors and audit traces in a **shared store** outside the repository tree:
+
+- default path on Linux/macOS with XDG fallback: `~/.local/share/plos/shared-store`
+- configurable override: `PLOS_STORAGE_DIR=/path/to/shared-store`
+
+This avoids tying the user's durable memory store to one Smo.OS checkout and makes the same store reusable by multiple compatible PLOS runtimes or orchestrators.
+
+Terminology note:
+
+- **PLOS** = the protocol/runtime layer
+- **shared store** = the persisted personal memory/state repository used by that layer
+
+This distinction helps avoid conflating the protocol itself with the durable memory it manages.
+
 ## Quick Start
 
 Install dependencies:
@@ -230,6 +247,10 @@ npm install
 Create an entity:
 ```bash
 npm run core:create -- "Coach AI"
+```
+Inspect the shared store location:
+```bash
+npm run core:storage
 ```
 Update state:
 ```bash

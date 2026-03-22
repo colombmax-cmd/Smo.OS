@@ -14,9 +14,14 @@ const REPO_ROOT = path.resolve(process.cwd());
 const TS_NODE_BIN = path.join(REPO_ROOT, "node_modules", ".bin", "ts-node");
 const SEAL_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "segment_seal_cli.ts");
 const VERIFY_SCRIPT = path.join(REPO_ROOT, "src", "crypto", "segment_verify.ts");
+const STORAGE_ENV = "PLOS_STORAGE_DIR";
+
+function fixtureStorageDir(dir: string): string {
+  return path.join(dir, "shared-store");
+}
 
 function writeFixtureBase(dir: string) {
-  const dataDir = path.join(dir, "data");
+  const dataDir = fixtureStorageDir(dir);
   fs.mkdirSync(dataDir, { recursive: true });
 
   const event = {
@@ -39,29 +44,33 @@ function writeFixtureBase(dir: string) {
 }
 
 function sealFixture(dir: string) {
-  const sealed = spawnSync(TS_NODE_BIN, [SEAL_SCRIPT], { cwd: dir, encoding: "utf8" });
+  const sealed = spawnSync(TS_NODE_BIN, [SEAL_SCRIPT], {
+    cwd: dir,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(dir) },
+  });
   if (sealed.status !== 0) {
     throw new Error(`Failed to seal fixture:\n${sealed.stdout}\n${sealed.stderr}`);
   }
 }
 
 function readManifest(dir: string): any {
-  const manifestPath = path.join(dir, "data", "segments", "seg-000001.manifest.json");
+  const manifestPath = path.join(fixtureStorageDir(dir), "segments", "seg-000001.manifest.json");
   return JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 }
 
 function writeManifest(dir: string, manifest: any) {
-  const manifestPath = path.join(dir, "data", "segments", "seg-000001.manifest.json");
+  const manifestPath = path.join(fixtureStorageDir(dir), "segments", "seg-000001.manifest.json");
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf8");
 }
 
 function readRegistry(dir: string): any {
-  const regPath = path.join(dir, "data", "keys", "registry.json");
+  const regPath = path.join(fixtureStorageDir(dir), "keys", "registry.json");
   return JSON.parse(fs.readFileSync(regPath, "utf8"));
 }
 
 function writeRegistry(dir: string, registry: any) {
-  const regPath = path.join(dir, "data", "keys", "registry.json");
+  const regPath = path.join(fixtureStorageDir(dir), "keys", "registry.json");
   fs.writeFileSync(regPath, JSON.stringify(registry, null, 2) + "\n", "utf8");
 }
 
@@ -138,7 +147,11 @@ function runCase(c: CaseDef) {
   alignRegistryToManifestTime(fixtureDir);
   c.mutate?.(fixtureDir);
 
-  const verify = spawnSync(TS_NODE_BIN, [VERIFY_SCRIPT], { cwd: fixtureDir, encoding: "utf8" });
+  const verify = spawnSync(TS_NODE_BIN, [VERIFY_SCRIPT], {
+    cwd: fixtureDir,
+    encoding: "utf8",
+    env: { ...process.env, [STORAGE_ENV]: fixtureStorageDir(fixtureDir) },
+  });
   const output = `${verify.stdout}\n${verify.stderr}`;
   const code = verify.status ?? 1;
 

@@ -7,6 +7,7 @@ import { rebuildState } from "../core/state";
 import { Event } from "../core/types";
 import { allocateSeqWithSeen, setOrigin, loadMeta, mergeSeen, resetMeta } from "../core/meta";
 import { compareEvents } from "../core/compare";
+import { getStorageLabel, storagePath } from "../core/storage";
 import { maybeSeal } from "../crypto/maybe_seal";
 import { exportPortableBundle, importPortableBundle, ExportProfile } from "../bundles/portable_bundle";
 
@@ -20,6 +21,7 @@ function usage() {
   console.log("  list");
   console.log("  export");
   console.log("  sync <otherLogPath>");
+  console.log("  storage");
   console.log("");
   console.log("Examples:");
   console.log('  npm run core:create -- "Stabiliser finances 2026"');
@@ -144,16 +146,19 @@ if (command === "origin") {
   process.exit(0);
 }
 
+if (command === "storage") {
+  console.log(getStorageLabel());
+  process.exit(0);
+}
+
 if (command === "reset") {
   // wipes local log + resets meta
-  const fs = require("fs");
-  const path = require("path");
-  const logPath = path.resolve(process.cwd(), "data", "events.jsonl");
+  const logPath = storagePath("events.jsonl");
 
   try { fs.unlinkSync(logPath); } catch {}
   resetMeta(loadMeta().origin || "default");
 
-  console.log("Reset done: data/events.jsonl removed, meta reset.");
+  console.log(`Reset done: ${logPath} removed, shared store metadata reset.`);
   process.exit(0);
 }
 

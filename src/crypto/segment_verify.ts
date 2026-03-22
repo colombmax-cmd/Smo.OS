@@ -1,13 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
+import { storagePath } from "../core/storage";
 import { compareEvents } from "../core/compare";
 import { jsonStableStringify } from "./canonical";
 import { sha256Hex } from "./hash";
 import { merkleRootHex } from "./merkle";
 import { verifyBase64, verifyBase64WithPublicKey, getPublicKeyPemForKeyId, getRegistryKeyMeta } from "./sign";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const SEG_DIR = path.join(DATA_DIR, "segments");
+const DATA_DIR = storagePath();
+const SEG_DIR = storagePath("segments");
 const SUPPORTED_VERSION = "0.2.1";
 const SUPPORTED = {
   canonical: "json-stable-v1",

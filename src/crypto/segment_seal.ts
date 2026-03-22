@@ -2,17 +2,18 @@ import * as fs from "fs";
 import * as path from "path";
 import { readEvents, writeEventsAll } from "../core/log";
 import { compareEvents } from "../core/compare";
+import { ensureStorageRoot, storagePath } from "../core/storage";
 import { jsonStableStringify } from "./canonical";
 import { sha256Hex } from "./hash";
 import { merkleRootHex } from "./merkle";
 import { signBase64, verifyBase64WithPublicKey, getActiveKeyId, getPublicKeyPemForKeyId } from "./sign";
 import { loadMeta } from "../core/meta";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const SEG_DIR = path.join(DATA_DIR, "segments");
+const DATA_DIR = storagePath();
+const SEG_DIR = storagePath("segments");
 
 function ensureSegDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureStorageRoot();
   if (!fs.existsSync(SEG_DIR)) fs.mkdirSync(SEG_DIR, { recursive: true });
 }
 
