@@ -44,7 +44,7 @@
     "conformance:sandbox": "ts-node conformance/sandbox-run.ts",
     "build": "tsc -p tsconfig.json"
   },
-  "name": "smo-os",
+  "name": "@colombmax-cmd/smo-os",
   "version": "1.0.0",
   "description": "Smo.OS protocol reference implementation",
   "repository": {
